@@ -9,14 +9,16 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.swuholocron.app"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.swuholocron.app"
     },
     "web": {
       "bundler": "metro",
@@ -37,6 +39,20 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "developmentClient": {
+      "silentLaunch": false
+    },
+    "extra": {
+      "eas": {
+        "projectId": "swu-holocron-app"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/swu-holocron-app"
     }
   }
 }
