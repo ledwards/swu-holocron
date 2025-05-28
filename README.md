@@ -25,6 +25,34 @@ In the output, you'll find options to open the app in a
 
 You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
+## Running Tests
+
+This project uses [Jest](https://jestjs.io/) with [React Native Testing Library](https://callstack.github.io/react-native-testing-library/) for testing.
+
+To run the tests:
+
+```bash
+npm test
+```
+
+You can also run tests with more detailed output:
+
+```bash
+npm test -- --verbose
+```
+
+### Test Structure
+
+- `__tests__/BasicTest.js`: Basic tests to verify that Jest is working correctly
+- `__tests__/components/`: Component-specific tests:
+  - Basic component rendering
+  - Themed components
+  - Interactive components (Collapsible)
+
+### Adding Tests
+
+When adding new components or features, consider adding corresponding tests in the `__tests__` directory following the existing structure.
+
 ## Get a fresh project
 
 When you're ready, run:

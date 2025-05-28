@@ -18,6 +18,7 @@ export function Collapsible({ children, title }: PropsWithChildren & { title: st
         onPress={() => setIsOpen((value) => !value)}
         activeOpacity={0.8}>
         <IconSymbol
+          testID="icon-symbol"
           name="chevron.right"
           size={18}
           weight="medium"
@@ -27,7 +28,7 @@ export function Collapsible({ children, title }: PropsWithChildren & { title: st
 
         <ThemedText type="defaultSemiBold">{title}</ThemedText>
       </TouchableOpacity>
-      {isOpen && <ThemedView style={styles.content}>{children}</ThemedView>}
+      {isOpen && <ThemedView style={styles.content} testID="child-content">{children}</ThemedView>}
     </ThemedView>
   );
 }
