@@ -2,16 +2,16 @@ import React from 'react';
 import { render } from '@testing-library/react-native';
 import { View, Text } from 'react-native';
 
-describe('Basic Test', () => {
-  test('renders correctly', () => {
-    const testMessage = 'Hello, World!';
+describe('Star Wars Unlimited Holocron App', () => {
+  test('renders basic components correctly', () => {
+    const testMessage = 'Star Wars Unlimited Holocron';
     const TestComponent = () => (
       <View testID="test-view">
         <Text testID="test-text">{testMessage}</Text>
       </View>
     );
 
-    const { getByTestID, getByText } = render(<TestComponent />);
+    const { getByText } = render(<TestComponent />);
     
     // Test that the component renders
     expect(getByText(testMessage)).toBeTruthy();
@@ -22,6 +22,6 @@ describe('Basic Test', () => {
     expect(1 + 1).toBe(2);
     expect(true).toBeTruthy();
     expect(false).toBeFalsy();
-    expect('Hello').toEqual('Hello');
+    expect('Star Wars Unlimited').not.toEqual('Star Wars CCG');
   });
 });
