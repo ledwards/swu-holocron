@@ -2,9 +2,11 @@ import React, {useContext} from 'react';
 import {View} from 'react-native';
 import {Icon} from 'react-native-elements';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
+import {BlurView} from 'expo-blur';
 
 import CardsScreen from '../../src/components/cards/CardsScreen';
 import DecklistsScreen from '../../src/components/decklists/DecklistsScreen';
+import SearchFooter from '../../src/components/SearchFooter';
 
 import styles from '../../src/styles/TabNavigation';
 import layout from '../../src/constants/layout';
@@ -25,19 +27,24 @@ export default function TabLayout() {
   };
 
   return (
-    <Tab.Navigator
-      initialRouteName="Cards"
-      screenOptions={{
-        tabBarShowLabel: false,
-        tabBarHideOnKeyboard: true,
-        headerShown: false,
-        tabBarStyle: {
-          ...styles.tabBarStyle,
-          bottom: layout.nativeFooterHeight(),
-          height: layout.tabBarHeight(),
-        },
-        tabBarItemStyle: styles.tabBarItemStyle,
-      }}>
+    <View style={{ flex: 1 }}>
+      <Tab.Navigator
+        initialRouteName="Cards"
+        screenOptions={{
+          tabBarShowLabel: false,
+          tabBarHideOnKeyboard: true,
+          headerShown: false,
+          tabBarStyle: {
+            ...styles.tabBarStyle,
+            bottom: layout.nativeFooterHeight(),
+            height: layout.tabBarHeight(),
+            backgroundColor: 'transparent',
+            elevation: 0,
+            shadowOpacity: 0,
+            zIndex: 1001,
+          },
+          tabBarItemStyle: styles.tabBarItemStyle,
+        }}>
       <Tab.Screen
         name="Cards"
         children={() => (
@@ -84,6 +91,18 @@ export default function TabLayout() {
           ),
         }}
       />
-    </Tab.Navigator>
+      </Tab.Navigator>
+      
+      <SearchFooter 
+        onSearchChange={(text) => {
+          // TODO: Handle search
+          console.log('Search:', text);
+        }}
+        onToggleSearchMode={() => {
+          // TODO: Handle search mode toggle
+          console.log('Toggle search mode');
+        }}
+      />
+    </View>
   );
 }

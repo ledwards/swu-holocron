@@ -25,7 +25,7 @@ const CardsScreen = () => {
           Search and browse cards from the Star Wars Unlimited card game
         </Text>
       </View>
-      <View style={[styles.footer, {height: layout.footerHeight(layout.tabBarHeight(), undefined)}]} />
+      <View style={[styles.footer, {height: layout.footerHeight(layout.tabBarHeight(), undefined) + 40}]} />
     </View>
   );
 };

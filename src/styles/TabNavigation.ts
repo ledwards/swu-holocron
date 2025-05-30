@@ -11,10 +11,13 @@ const styles = StyleSheet.create({
     paddingBottom: 0,
     marginBottom: 0,
     height: 44,
+    borderTopColor: 'transparent',
+    zIndex: 1001,
   },
   tabBarItemStyle: {
     paddingVertical: 10,
     paddingHorizontal: 5,
+    zIndex: 1002,
   },
   activeTabBackground: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',

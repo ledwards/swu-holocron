@@ -25,7 +25,7 @@ const DecklistsScreen = () => {
           Browse and manage your Star Wars Unlimited decks
         </Text>
       </View>
-      <View style={[styles.footer, {height: layout.footerHeight(layout.tabBarHeight(), undefined)}]} />
+      <View style={[styles.footer, {height: layout.footerHeight(layout.tabBarHeight(), undefined) + 40}]} />
     </View>
   );
 };
