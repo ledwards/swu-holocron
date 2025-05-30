@@ -2,7 +2,7 @@ import React, {useContext} from 'react';
 import {View} from 'react-native';
 import {Icon} from 'react-native-elements';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
-import {BlurView} from 'expo-blur';
+
 
 import CardsScreen from '../../src/components/cards/CardsScreen';
 import DecklistsScreen from '../../src/components/decklists/DecklistsScreen';
@@ -47,15 +47,6 @@ export default function TabLayout() {
         }}>
       <Tab.Screen
         name="Cards"
-        children={() => (
-          <View
-            style={{
-              flex: 1,
-              backgroundColor: theme?.backgroundColor,
-            }}>
-            <CardsScreen />
-          </View>
-        )}
         options={{
           tabBarLabel: 'Search',
           tabBarIcon: () => (
@@ -66,19 +57,19 @@ export default function TabLayout() {
               size={iconSize}
             />
           ),
-        }}
-      />
-      <Tab.Screen
-        name="Decklists"
-        children={() => (
+        }}>
+        {() => (
           <View
             style={{
               flex: 1,
               backgroundColor: theme?.backgroundColor,
             }}>
-            <DecklistsScreen />
+            <CardsScreen />
           </View>
         )}
+      </Tab.Screen>
+      <Tab.Screen
+        name="Decklists"
         options={{
           tabBarLabel: 'Decklists',
           tabBarIcon: () => (
@@ -89,8 +80,17 @@ export default function TabLayout() {
               size={iconSize}
             />
           ),
-        }}
-      />
+        }}>
+        {() => (
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: theme?.backgroundColor,
+            }}>
+            <DecklistsScreen />
+          </View>
+        )}
+      </Tab.Screen>
       </Tab.Navigator>
       
       <SearchFooter 

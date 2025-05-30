@@ -1,99 +1,124 @@
 export default class Card {
   id: string;
   title: string;
-  sortTitle: string;
-  text: string;
+  subtitle?: string;
   type: string;
-  subtype: string;
-  rarity: string;
-  set: string;
-  setNumber: number;
+  aspects: string[];
+  traits: string[];
+  arenas: string[];
   cost: number;
-  power: number;
-  hp: number;
-  faction: string;
-  colors: string[];
-  imageUrl: string;
+  power?: number;
+  hp?: number;
+  text: string;
+  epicAction?: string;
+  set: string;
+  number: string;
+  rarity: string;
+  artist?: string;
   unique: boolean;
-  flavor: string;
-  artist: string;
-  alternateImageUrls?: string[];
-  fullArtImageUrl?: string;
-  keywords: string[];
+  doubleImage?: boolean;
+  frontArt?: string;
+  backArt?: string;
+  variants?: CardVariant[];
 
   constructor(data: Partial<Card> = {}) {
     this.id = data.id || '';
     this.title = data.title || '';
-    this.sortTitle = data.sortTitle || this.title.replace(/^(The|A|An) /, '');
-    this.text = data.text || '';
+    this.subtitle = data.subtitle;
     this.type = data.type || '';
-    this.subtype = data.subtype || '';
-    this.rarity = data.rarity || '';
-    this.set = data.set || '';
-    this.setNumber = data.setNumber || 0;
+    this.aspects = data.aspects || [];
+    this.traits = data.traits || [];
+    this.arenas = data.arenas || [];
     this.cost = data.cost || 0;
-    this.power = data.power || 0;
-    this.hp = data.hp || 0;
-    this.faction = data.faction || '';
-    this.colors = data.colors || [];
-    this.imageUrl = data.imageUrl || '';
+    this.power = data.power;
+    this.hp = data.hp;
+    this.text = data.text || '';
+    this.epicAction = data.epicAction;
+    this.set = data.set || '';
+    this.number = data.number || '';
+    this.rarity = data.rarity || '';
+    this.artist = data.artist;
     this.unique = data.unique || false;
-    this.flavor = data.flavor || '';
-    this.artist = data.artist || '';
-    this.alternateImageUrls = data.alternateImageUrls;
-    this.fullArtImageUrl = data.fullArtImageUrl;
-    this.keywords = data.keywords || [];
+    this.doubleImage = data.doubleImage || false;
+    this.frontArt = data.frontArt;
+    this.backArt = data.backArt;
+    this.variants = data.variants || [];
   }
 
   static fromJSON(json: any): Card {
     return new Card({
       id: json.id,
       title: json.title,
-      sortTitle: json.sortTitle,
-      text: json.text,
+      subtitle: json.subtitle,
       type: json.type,
-      subtype: json.subtype,
-      rarity: json.rarity,
-      set: json.set,
-      setNumber: json.setNumber,
+      aspects: json.aspects || [],
+      traits: json.traits || [],
+      arenas: json.arenas || [],
       cost: json.cost,
       power: json.power,
       hp: json.hp,
-      faction: json.faction,
-      colors: json.colors,
-      imageUrl: json.imageUrl,
-      unique: json.unique,
-      flavor: json.flavor,
+      text: json.text,
+      epicAction: json.epicAction,
+      set: json.set,
+      number: json.number,
+      rarity: json.rarity,
       artist: json.artist,
-      alternateImageUrls: json.alternateImageUrls,
-      fullArtImageUrl: json.fullArtImageUrl,
-      keywords: json.keywords,
+      unique: json.unique,
+      doubleImage: json.doubleImage,
+      frontArt: json.frontArt,
+      backArt: json.backArt,
+      variants: json.variants,
     });
   }
 
-  toJSON(): any {
-    return {
-      id: this.id,
-      title: this.title,
-      sortTitle: this.sortTitle,
-      text: this.text,
-      type: this.type,
-      subtype: this.subtype,
-      rarity: this.rarity,
-      set: this.set,
-      setNumber: this.setNumber,
-      cost: this.cost,
-      power: this.power,
-      hp: this.hp,
-      faction: this.faction,
-      colors: this.colors,
-      imageUrl: this.imageUrl,
-      unique: this.unique,
-      flavor: this.flavor,
-      artist: this.artist,
-      alternateImageUrls: this.alternateImageUrls,
-      fullArtImageUrl: this.fullArtImageUrl,
-      keywords: this.keywords,
-    };
+  get displayTitle(): string {
+    return this.subtitle ? `${this.title}, ${this.subtitle}` : this.title;
+  }
+
+  get isUnit(): boolean {
+    return this.type.toLowerCase() === 'unit';
+  }
+
+  get isEvent(): boolean {
+    return this.type.toLowerCase() === 'event';
+  }
+
+  get isUpgrade(): boolean {
+    return this.type.toLowerCase() === 'upgrade';
+  }
+
+  get isBase(): boolean {
+    return this.type.toLowerCase() === 'base';
+  }
+
+  get isLeader(): boolean {
+    return this.type.toLowerCase() === 'leader';
+  }
+
+  hasAspect(aspect: string): boolean {
+    return this.aspects.some(a => a.toLowerCase() === aspect.toLowerCase());
+  }
+
+  hasTrait(trait: string): boolean {
+    return this.traits.some(t => t.toLowerCase().includes(trait.toLowerCase()));
+  }
+
+  hasArena(arena: string): boolean {
+    return this.arenas.some(a => a.toLowerCase() === arena.toLowerCase());
+  }
+
+  get sortTitle(): string {
+    return this.title.replace(/^(The|A|An) /, '');
   }
 }
+
+export interface CardVariant {
+  id: string;
+  art: string;
+  rarity?: string;
+}
+
+export type CardType = 'Unit' | 'Event' | 'Upgrade' | 'Base' | 'Leader';
+export type CardAspect = 'Command' | 'Aggression' | 'Cunning' | 'Vigilance' | 'Heroism' | 'Villainy';
+export type CardArena = 'Ground' | 'Space';
+export type CardRarity = 'Common' | 'Uncommon' | 'Rare' | 'Legendary' | 'Special';
