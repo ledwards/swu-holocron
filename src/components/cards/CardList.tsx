@@ -111,11 +111,6 @@ const CardList: React.FC<CardListProps> = ({onCardPress}) => {
         keyExtractor={keyExtractor}
         ItemSeparatorComponent={SeparatorComponent}
         keyboardShouldPersistTaps="handled"
-        initialNumToRender={10}
-        removeClippedSubviews={true}
-        maxToRenderPerBatch={10}
-        updateCellsBatchingPeriod={100}
-        windowSize={10}
       />
     </View>
   );
