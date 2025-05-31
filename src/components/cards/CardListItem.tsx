@@ -52,6 +52,8 @@ const CardListItem = (props: CardListItemProps) => {
     posY: 0,
   });
 
+  const [leftAnim] = useState(new Animated.Value(-40));
+
   // Use context to get theme if not provided as prop
   const theme = props.theme || useContext(ThemeContext) || {
     name: 'dark',
@@ -92,19 +94,19 @@ const CardListItem = (props: CardListItemProps) => {
       case 'unit':
         const isVehicle = props.card.traits.some(trait => trait.toLowerCase().includes('vehicle'));
         return { 
-          top: isVehicle ? '27%' : '17%', 
+          top: isVehicle ? '42%' : '32%', 
           left: '15%' 
         };
       case 'upgrade':
-        return { top: '15%', left: '15%' };
+        return { top: '30%', left: '15%' };
       case 'event':
-        return { top: '70%', left: '15%' };
+        return { top: '115%', left: '15%' };
       case 'leader':
-        return { top: '15%', left: '15%' };
+        return { top: '35%', left: '15%' };
       case 'base':
-        return { top: '20%', left: '15%' };
+        return { top: '75%', left: '15%' };
       default:
-        return { top: '15%', left: '15%' };
+        return { top: '30%', left: '15%' };
     }
   };
 
@@ -130,45 +132,97 @@ const CardListItem = (props: CardListItemProps) => {
 
     props.scrollToIndex(props.index);
 
-    const t = 300;
+    const t = 2000;
     const easing = Easing.elastic(0);
 
-    if (needsToExpand || needsToCollapse) {
+    if (needsToExpand) {
+      // Expanding: animate first, then change state
       Animated.sequence([
         Animated.parallel([
           Animated.timing(state.heightAnim, {
-            toValue: state.expanded ? state.minHeight : state.maxHeight,
+            toValue: state.maxHeight,
             duration: t,
             useNativeDriver: false,
             easing: easing,
           }),
           Animated.timing(state.widthAnim, {
-            toValue: state.expanded ? state.minWidth : state.maxWidth,
+            toValue: state.maxWidth,
             duration: t,
             useNativeDriver: false,
             easing: easing,
           }),
           Animated.timing(state.containerHeightAnim, {
-            toValue: state.expanded ? state.minHeight / 2 : state.maxHeight,
+            toValue: state.maxHeight,
             duration: t,
             useNativeDriver: false,
             easing: easing,
           }),
           Animated.timing(state.labelOpacityAnim, {
-            toValue: state.expanded ? 1.0 : 0.0,
+            toValue: 0.0,
+            duration: t,
+            useNativeDriver: false,
+            easing: easing,
+          }),
+          Animated.timing(leftAnim, {
+            toValue: 0,
             duration: t,
             useNativeDriver: false,
             easing: easing,
           }),
         ]),
       ])
-        .start(() => props.scrollToIndex(props.index));
+        .start(() => {
+          setState({
+            ...state,
+            expanded: true,
+          });
+          props.scrollToIndex(props.index);
+        });
+    } else if (needsToCollapse) {
+      // Collapsing: change state first, then animate
+      setState({
+        ...state,
+        expanded: false,
+      });
+      
+      Animated.sequence([
+        Animated.parallel([
+          Animated.timing(state.heightAnim, {
+            toValue: state.minHeight,
+            duration: t,
+            useNativeDriver: false,
+            easing: easing,
+          }),
+          Animated.timing(state.widthAnim, {
+            toValue: state.minWidth,
+            duration: t,
+            useNativeDriver: false,
+            easing: easing,
+          }),
+          Animated.timing(state.containerHeightAnim, {
+            toValue: state.minHeight / 2,
+            duration: t,
+            useNativeDriver: false,
+            easing: easing,
+          }),
+          Animated.timing(state.labelOpacityAnim, {
+            toValue: 1.0,
+            duration: t,
+            useNativeDriver: false,
+            easing: easing,
+          }),
+          Animated.timing(leftAnim, {
+            toValue: -40,
+            duration: t,
+            useNativeDriver: false,
+            easing: easing,
+          }),
+        ]),
+      ])
+        .start(() => {
+          props.scrollToIndex(props.index);
+        });
     }
-
-    setState({
-      ...state,
-      expanded: !needsToCollapse,
-    });
 
     if (props.onPress) {
       props.onPress(props.card);
@@ -223,7 +277,7 @@ const CardListItem = (props: CardListItemProps) => {
                   paddingHorizontal: 6,
                   paddingVertical: 0,
                   borderRadius: 3,
-                  marginBottom: 4,
+                  marginBottom: 1,
                   lineHeight: 18,
                   color: textColor,
                 }} 
@@ -239,7 +293,7 @@ const CardListItem = (props: CardListItemProps) => {
                   paddingHorizontal: 6,
                   paddingVertical: 1,
                   borderRadius: 3,
-                  marginBottom: 4,
+                  marginBottom: 7,
                   color: textColor,
                 }}
                 numberOfLines={1}
@@ -269,27 +323,32 @@ const CardListItem = (props: CardListItemProps) => {
           style={{
             position: 'absolute',
             top: 0,
-            right: state.expanded ? 0 : -60,
+            right: state.expanded ? 0 : -65,
             bottom: 0,
             overflow: 'hidden',
             height: state.heightAnim,
             width: state.widthAnim,
           }}>
-          <Image
-            source={{
-              uri: props.card.type.toLowerCase() === 'leader' ? props.card.backArt : props.card.frontArt
-            }}
-            style={{
-              width: '100%',
-              height: '100%',
-              borderRadius: 24,
-              position: 'relative',
-              left: state.expanded ? 0 : -30,
-            }}
-            contentFit={state.expanded ? "contain" : "cover"}
-            contentPosition={state.expanded ? undefined : contentPosition}
-            transition={200}
-          />
+          <Animated.View style={{
+            width: '100%',
+            height: '100%',
+            left: leftAnim,
+          }}>
+            <Image
+              source={{
+                uri: props.card.type.toLowerCase() === 'leader' ? props.card.backArt : props.card.frontArt
+              }}
+              style={{
+                width: '100%',
+                height: '100%',
+                borderRadius: 24,
+                position: 'relative',
+              }}
+              contentFit={state.expanded ? "contain" : "cover"}
+              contentPosition={state.expanded ? undefined : contentPosition}
+              transition={200}
+            />
+          </Animated.View>
         </Animated.View>
         
         <View style={{
