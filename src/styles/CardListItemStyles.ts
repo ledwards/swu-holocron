@@ -8,10 +8,11 @@ const styles = StyleSheet.create({
   cardListItem: {
     backgroundColor: '#000000',
     position: 'absolute',
+    overflow: 'hidden',
   },
   cardListItemExpanded: {
     overflow: 'hidden',
-    right: -60,
+    right: -80,
   },
   cardListItemCollapsed: {
     right: 0,
@@ -22,7 +23,7 @@ const styles = StyleSheet.create({
   },
   cardListItemImageExpanded: {
     position: 'relative',
-    left: -30,
+    left: -50,
     top: 0,
   },
   cardListItemImageCollapsed: {

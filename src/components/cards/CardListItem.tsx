@@ -61,6 +61,9 @@ const CardListItem = (props: CardListItemProps) => {
     posY: 0,
   });
 
+  // Track the current expanded state for immediate contentPosition updates
+  const [currentlyExpanded, setCurrentlyExpanded] = useState(false);
+
 
   // Use context to get theme if not provided as prop
   const theme = props.theme || useContext(ThemeContext) || {
@@ -100,21 +103,45 @@ const CardListItem = (props: CardListItemProps) => {
     
     switch (type) {
       case 'unit':
-        const isVehicle = props.card.traits.some(trait => trait.toLowerCase().includes('vehicle'));
         return { 
-          top: isVehicle ? '42%' : '32%', 
+          top: '27%', 
           left: '15%' 
         };
       case 'upgrade':
         return { top: '30%', left: '15%' };
       case 'event':
-        return { top: '115%', left: '15%' };
+        return { top: '95%', left: '15%' };
       case 'leader':
         return { top: '35%', left: '15%' };
       case 'base':
         return { top: '75%', left: '15%' };
       default:
         return { top: '30%', left: '15%' };
+    }
+  };
+
+  const getImageTransform = (cardType: string) => {
+    if (currentlyExpanded) return []; // No transform when expanded
+    
+    const type = cardType.toLowerCase();
+    
+    switch (type) {
+      case 'unit':
+        const isUnique = props.card.unique;
+        
+        if (isUnique) {
+          return [{ translateY: '-15%' }]; // Move up 15% for unique units
+        } else {
+          return [{ translateY: '-15%' }]; // Move up 15% for non-unique units
+        }
+      case 'upgrade':
+        return [{ translateY: '-15%' }]; // Move up 15% for upgrades (same as non-unique units)
+      case 'event':
+        return [{ translateY: '-60%' }]; // Move up 60% for events
+      case 'base':
+        return [{ translateY: '-20%' }]; // Move up 20% for bases
+      default:
+        return []; // No transform for other types
     }
   };
 
@@ -138,6 +165,15 @@ const CardListItem = (props: CardListItemProps) => {
     const needsToExpand = !state.expanded;
     const needsToFlip = false; // SWU cards don't flip like SWCCG
     const needsToCollapse = state.expanded;
+    const newExpandedState = !needsToCollapse;
+
+    // Instantly change expanded state to remove crop
+    setCurrentlyExpanded(newExpandedState);
+    setState({
+      ...state,
+      showingBack: needsToFlip,
+      expanded: newExpandedState,
+    });
 
     const t = 300;
     const easing = Easing.elastic(0);
@@ -145,26 +181,21 @@ const CardListItem = (props: CardListItemProps) => {
     if (needsToExpand || needsToCollapse) {
       Animated.sequence([
         Animated.parallel([
-          Animated.timing(state.heightAnim, {
-            toValue: state.expanded ? state.minHeight : state.maxHeight,
-            duration: t,
-            useNativeDriver: false,
-            easing: easing,
-          }),
+
           Animated.timing(state.widthAnim, {
-            toValue: state.expanded ? state.minWidth : state.maxWidth,
+            toValue: needsToCollapse ? state.minWidth : state.maxWidth,
             duration: t,
             useNativeDriver: false,
             easing: easing,
           }),
           Animated.timing(state.containerHeightAnim, {
-            toValue: state.expanded ? state.minHeight / 2 : state.maxHeight,
+            toValue: needsToCollapse ? state.minHeight / 2 : state.maxHeight,
             duration: t,
             useNativeDriver: false,
             easing: easing,
           }),
           Animated.timing(state.labelOpacityAnim, {
-            toValue: state.expanded ? 1.0 : 0.0,
+            toValue: needsToCollapse ? 1.0 : 0.0,
             duration: t,
             useNativeDriver: true,
             easing: easing,
@@ -176,12 +207,6 @@ const CardListItem = (props: CardListItemProps) => {
           props.scrollToIndex(props.index);
         });
     }
-
-    setState({
-      ...state,
-      showingBack: needsToFlip,
-      expanded: !needsToCollapse,
-    });
 
     if (props.onPress) {
       props.onPress(props.card);
@@ -263,8 +288,8 @@ const CardListItem = (props: CardListItemProps) => {
           style={[
             styles.cardListItem,
             {
-              height: state.heightAnim,
               width: state.widthAnim,
+              aspectRatio: horizontal ? 1.4 : 1/1.4,
             },
             !state.expanded
               ? styles.cardListItemExpanded
@@ -273,7 +298,7 @@ const CardListItem = (props: CardListItemProps) => {
           <Image
             source={{
               uri: props.card.type.toLowerCase() === 'leader' 
-                ? (state.expanded ? props.card.frontArt : props.card.backArt)
+                ? (currentlyExpanded ? props.card.frontArt : props.card.backArt)
                 : props.card.frontArt
             }}
             style={[
@@ -281,10 +306,13 @@ const CardListItem = (props: CardListItemProps) => {
               !state.expanded
                 ? styles.cardListItemImageExpanded
                 : styles.cardListItemImageCollapsed,
-              { borderRadius: 20 },
+              { 
+                borderRadius: 20,
+                transform: getImageTransform(props.card.type)
+              },
             ]}
-            contentFit={state.expanded && horizontal ? "contain" : "cover"}
-            contentPosition={state.expanded && horizontal ? undefined : contentPosition}
+            contentFit={currentlyExpanded && horizontal ? "contain" : "cover"}
+            contentPosition={currentlyExpanded ? undefined : contentPosition}
           />
         </Animated.View>
         
