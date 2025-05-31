@@ -102,13 +102,13 @@ const CardListItem = (props: CardListItemProps) => {
       case 'unit':
         const isVehicle = props.card.traits.some(trait => trait.toLowerCase().includes('vehicle'));
         return { 
-          top: isVehicle ? '42%' : '32%', 
+          top: isVehicle ? '32%' : '27%', 
           left: '15%' 
         };
       case 'upgrade':
         return { top: '30%', left: '15%' };
       case 'event':
-        return { top: '115%', left: '15%' };
+        return { top: '95%', left: '15%' };
       case 'leader':
         return { top: '35%', left: '15%' };
       case 'base':
