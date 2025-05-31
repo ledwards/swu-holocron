@@ -50,6 +50,7 @@ const CardList: React.FC<CardListProps> = ({onCardPress}) => {
         renderItem={renderCard}
         keyExtractor={keyExtractor}
         ListEmptyComponent={renderEmptyComponent}
+        style={styles.flatList}
         contentContainerStyle={[
           styles.listContainer,
           {
@@ -65,8 +66,8 @@ const CardList: React.FC<CardListProps> = ({onCardPress}) => {
         initialNumToRender={15}
         updateCellsBatchingPeriod={50}
         getItemLayout={(data, index) => ({
-          length: 140,
-          offset: 140 * index,
+          length: 96,
+          offset: 96 * index,
           index,
         })}
       />
@@ -77,6 +78,10 @@ const CardList: React.FC<CardListProps> = ({onCardPress}) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  flatList: {
+    paddingHorizontal: 0,
+    marginHorizontal: 0,
   },
   backgroundPattern: {
     position: 'absolute',
