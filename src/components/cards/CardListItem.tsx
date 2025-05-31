@@ -3,6 +3,7 @@ import {View, Text, StyleSheet, TouchableOpacity, Dimensions} from 'react-native
 import {BlurView} from 'expo-blur';
 import {Image} from 'expo-image';
 
+
 import ThemeContext from '../../contexts/ThemeContext';
 import {Theme} from '../../types/interfaces';
 import Card from '../../models/Card';
@@ -42,41 +43,25 @@ const CardListItem: React.FC<CardListItemProps> = ({card, onPress}) => {
     if (aspects.length === 0) return '#808080'; // Gray for no aspects
     
     const aspectsLower = aspects.map(a => a.toLowerCase());
-    const hasVillainy = aspectsLower.includes('villainy');
-    const hasHeroism = aspectsLower.includes('heroism');
     
-    // Find the primary non-alignment aspect
+    // Find the primary aspect
     const primaryAspect = aspectsLower.find(a => !['villainy', 'heroism'].includes(a)) || aspectsLower[0];
-    
-    let baseColor: string;
     
     switch (primaryAspect) {
       case 'aggression':
-        if (hasVillainy && hasHeroism) return '#DC3545'; // Standard Red
-        if (hasVillainy) return '#A02834'; // Darker Red
-        if (hasHeroism) return '#F85065'; // Lighter Red
-        return '#DC3545'; // Standard Red
+        return '#D25A56'; // More vibrant muted red
       case 'command':
-        if (hasVillainy && hasHeroism) return '#28A745'; // Standard Green
-        if (hasVillainy) return '#1E7832'; // Darker Green
-        if (hasHeroism) return '#40C962'; // Lighter Green
-        return '#28A745'; // Standard Green
+        return '#2B4C36'; // Muted dark green
       case 'vigilance':
-        if (hasVillainy && hasHeroism) return '#007BFF'; // Standard Blue
-        if (hasVillainy) return '#0056B3'; // Darker Blue
-        if (hasHeroism) return '#3395FF'; // Lighter Blue
-        return '#007BFF'; // Standard Blue
+        return '#2C3E5C'; // Muted dark blue
       case 'cunning':
-        if (hasVillainy && hasHeroism) return '#FFC107'; // Standard Yellow
-        if (hasVillainy) return '#CC9A06'; // Darker Yellow
-        if (hasHeroism) return '#FFD43B'; // Lighter Yellow
-        return '#FFC107'; // Standard Yellow
+        return '#E6C547'; // More vibrant muted yellow
       case 'villainy':
-        return '#2C2C2C'; // Dark Gray (not pure black for readability)
+        return '#1A1A1A'; // Dark gray
       case 'heroism':
-        return '#F8F9FA'; // Light Gray (not pure white for visibility)
+        return '#D8D8D8'; // Muted light gray
       default:
-        return '#808080'; // Gray fallback
+        return '#4A4A4A'; // Medium gray
     }
   };
 
@@ -90,8 +75,41 @@ const CardListItem: React.FC<CardListItemProps> = ({card, onPress}) => {
   const imageWidth = windowWidth * 0.44;
   const imageHeight = 80; // Fixed height to match text area
 
+  // Get card type-specific content position for viewport into artwork
+  const getContentPosition = (cardType: string) => {
+    const type = cardType.toLowerCase();
+    
+    switch (type) {
+      case 'unit':
+        // Check if unit is a vehicle and adjust accordingly
+        const isVehicle = card.traits.some(trait => trait.toLowerCase().includes('vehicle'));
+        return { 
+          top: isVehicle ? '27%' : '17%', 
+          left: '15%' 
+        }; // Show lower section for vehicles, standard for other units
+      case 'upgrade':
+        return { top: '15%', left: '15%' }; // Standard positioning
+      case 'event':
+        return { top: '70%', left: '15%' }; // Show lower half for events
+      case 'leader':
+        return { top: '15%', left: '15%' }; // Standard positioning
+      case 'base':
+        return { top: '20%', left: '15%' }; // Move down 5% for bases
+      default:
+        return { top: '15%', left: '15%' }; // Standard positioning
+    }
+  };
 
+  const contentPosition = getContentPosition(card.type);
   const aspectBackgroundColor = getAspectBackgroundColor(card.aspects);
+  
+  // Use black text for light backgrounds, white text for dark backgrounds
+  const getTextColor = (backgroundColor: string): string => {
+    if (backgroundColor === '#D8D8D8') return '#000000'; // Black text on light gray
+    return '#FFFFFF'; // White text on all dark colors
+  };
+  
+  const textColor = getTextColor(aspectBackgroundColor);
 
   return (
     <TouchableOpacity onPress={handlePress} activeOpacity={0.8}>
@@ -105,7 +123,7 @@ const CardListItem: React.FC<CardListItemProps> = ({card, onPress}) => {
                   style={[
                     styles.cardTitle, 
                     {
-                      color: theme.foregroundColor,
+                      color: textColor,
                       backgroundColor: 'transparent',
                     }
                   ]} 
@@ -113,31 +131,29 @@ const CardListItem: React.FC<CardListItemProps> = ({card, onPress}) => {
                 >
                   {card.title}
                 </Text>
-                {card.subtitle && (
-                  <Text 
-                    style={[
-                      styles.cardSubtitle,
-                      {
-                        color: theme.foregroundColor,
-                        backgroundColor: 'transparent',
-                      }
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {card.subtitle}
-                  </Text>
-                )}
                 <Text 
                   style={[
-                    styles.cardMeta,
+                    styles.cardSubtitle,
                     {
-                      color: theme.foregroundColor,
+                      color: textColor,
                       backgroundColor: 'transparent',
                     }
                   ]}
                   numberOfLines={1}
                 >
-                  {`${card.set}${card.number} • ${card.type} • ${getRarityAbbreviation(card.rarity)}`}
+                  {card.subtitle || ' '}
+                </Text>
+                <Text 
+                  style={[
+                    styles.cardMeta,
+                    {
+                      color: textColor,
+                      backgroundColor: 'transparent',
+                    }
+                  ]}
+                  numberOfLines={1}
+                >
+                  {`${card.set} ${card.number} • ${card.type} • ${getRarityAbbreviation(card.rarity)}`}
                 </Text>
               </View>
             </View>
@@ -147,9 +163,15 @@ const CardListItem: React.FC<CardListItemProps> = ({card, onPress}) => {
         {card.frontArt && (
           <View style={[styles.cardImageContainer, { width: imageWidth }]}>
             <Image
-              source={{ uri: card.frontArt }}
-              style={[styles.cardImage, { width: imageWidth, height: 80 }]}
+              source={{ uri: card.type.toLowerCase() === 'leader' ? card.backArt : card.frontArt }}
+              style={[styles.cardImage, {
+                width: imageWidth * 1.43,
+                height: 80 * 1.43,
+                left: -imageWidth * 0.215,
+                top: -17.2
+              }]}
               contentFit="cover"
+              contentPosition={contentPosition}
               transition={200}
             />
           </View>
@@ -162,19 +184,18 @@ const CardListItem: React.FC<CardListItemProps> = ({card, onPress}) => {
 const styles = StyleSheet.create({
   outerContainer: {
     position: 'relative',
-    marginLeft: 16,
-    marginVertical: 8,
+    marginLeft: 0,
+    marginVertical: 1,
     minHeight: 80,
   },
   cardContainer: {
-    borderRadius: 8,
+    borderRadius: 0,
     overflow: 'hidden',
     elevation: 3,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
-    minHeight: 80,
   },
   backgroundLayer: {
     position: 'absolute',
@@ -182,12 +203,12 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    borderRadius: 8,
+    borderRadius: 0,
     opacity: 0.8,
   },
   blurContainer: {
     flex: 1,
-    borderRadius: 8,
+    borderRadius: 0,
     overflow: 'hidden',
   },
   cardContent: {
@@ -211,18 +232,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingVertical: 0,
     borderRadius: 3,
-    marginBottom: 1,
+    marginBottom: 0,
     lineHeight: 18,
   },
   cardSubtitle: {
     fontSize: 12,
     fontWeight: '400',
+    fontStyle: 'italic',
     paddingHorizontal: 6,
     paddingVertical: 1,
     borderRadius: 3,
-    marginBottom: 1,
+    marginBottom: 4,
   },
   cardMeta: {
     fontSize: 10,
@@ -239,7 +261,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     borderWidth: 1,
-    borderRadius: 12,
+    borderRadius: 0,
     opacity: 0.3,
   },
   cardImageContainer: {
