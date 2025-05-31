@@ -1,128 +1,124 @@
-import React, {useContext} from 'react';
-import {View, FlatList, StyleSheet, Text} from 'react-native';
-import {BlurView} from 'expo-blur';
+import React, {useState, useEffect, useContext, useRef} from 'react';
+import {View, ActivityIndicator, Text, FlatList} from 'react-native';
 
-import ThemeContext from '../../contexts/ThemeContext';
-import AllCardsContext from '../../contexts/AllCardsContext';
-import {Theme} from '../../types/interfaces';
+import CardListItem  from './CardListItem';
 import Card from '../../models/Card';
-import CardListItem from './CardListItem';
+
+import styles from '../../styles/SearchableCardListStyles';
 import layout from '../../constants/layout';
+import AllCardsContext from '../../contexts/AllCardsContext';
+import ThemeContext from '../../contexts/ThemeContext';
+import {Theme, ScrollToIndexFunction} from '../../types/interfaces';
 
 interface CardListProps {
   onCardPress?: (card: Card) => void;
 }
 
 const CardList: React.FC<CardListProps> = ({onCardPress}) => {
+  const [loading, setLoading] = useState(false);
+
+  const flatListRef = useRef<FlatList<Card>>(null);
+
   const themeContext = useContext(ThemeContext);
-  const allCards = useContext(AllCardsContext);
   const theme: Theme = themeContext || {
     name: 'dark',
     backgroundColor: '#000000',
     foregroundColor: '#FFFFFF',
     dividerColor: '#444444',
-    translucentBackgroundColor: 'rgba(0,0,0,0.5)',
+    translucentBackgroundColor: 'rgba(0,0,0,0.5)'
   };
 
-  const renderCard = ({item}: {item: Card}) => (
-    <CardListItem card={item} onPress={onCardPress} />
-  );
+  const allCardsContext = useContext(AllCardsContext);
+  const allCards: Card[] = allCardsContext || [];
+
+  const scrollToIndex: ScrollToIndexFunction = (index: number): void => {
+    if (flatListRef.current) {
+      flatListRef.current.scrollToIndex({
+        animated: true,
+        index: index,
+        viewOffset: layout.nativeHeaderHeight() + 75,
+      });
+    }
+  };
+
+  const renderCard = ({item, index}: {item: Card; index: number}) => {
+    return (
+      <CardListItem
+        theme={theme}
+        card={item}
+        index={index}
+        scrollToIndex={scrollToIndex}
+        onPress={onCardPress}
+      />
+    );
+  };
 
   const keyExtractor = (item: Card) => item.id || `${item.set}-${item.number}`;
 
   const renderEmptyComponent = () => (
-    <View style={styles.emptyContainer}>
-      <Text style={[styles.emptyText, {color: theme.foregroundColor}]}>
-        No cards available
+    <View style={styles.listEmptyContainer}>
+      <Text style={[styles.defaultTextTitle, {color: theme.foregroundColor}]}>
+        Star Wars Unlimited Cards
       </Text>
-      <Text style={[styles.emptySubtext, {color: theme.foregroundColor}]}>
-        Cards are still loading or there was an error loading the card data.
+      <Text style={[styles.defaultTextDescription, {color: theme.foregroundColor}]}>
+        Browse all Star Wars Unlimited cards
       </Text>
     </View>
   );
 
+  const SeparatorComponent = (): JSX.Element => {
+    return (
+      <View
+        style={{
+          backgroundColor: theme.backgroundColor,
+          ...styles.separator,
+        }}
+      />
+    );
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loading}>
+        <ActivityIndicator />
+      </View>
+    );
+  }
+
   return (
-    <View style={[styles.container, {backgroundColor: theme.backgroundColor}]}>
-      <View style={[styles.backgroundPattern, {backgroundColor: theme.backgroundColor}]} />
-      <BlurView intensity={5} tint={theme.name === 'dark' ? 'dark' : 'light'} style={styles.backgroundBlur} />
+    <View style={[{backgroundColor: theme.backgroundColor, flex: 1}]}>
       <FlatList
+        ref={flatListRef}
+        contentContainerStyle={styles.flatListContentContainer}
         data={allCards}
         renderItem={renderCard}
-        keyExtractor={keyExtractor}
         ListEmptyComponent={renderEmptyComponent}
-        style={styles.flatList}
-        contentContainerStyle={[
-          styles.listContainer,
-          {
-            paddingTop: layout.nativeHeaderHeight() + 16,
-            paddingBottom: layout.footerHeight(layout.tabBarHeight(), undefined) + 16,
-          },
-          allCards.length === 0 && styles.emptyListContainer,
-        ]}
-        showsVerticalScrollIndicator={false}
+        ListHeaderComponent={() => <></>}
+        ListHeaderComponentStyle={{
+          backgroundColor: theme.backgroundColor,
+          borderColor: 'transparent',
+          borderBottomWidth: 0,
+          height: layout.nativeHeaderHeight(),
+        }}
+        ListFooterComponent={() => <></>}
+        ListFooterComponentStyle={{
+          flexGrow: 1,
+          backgroundColor: theme.backgroundColor,
+          height: layout.footerHeight(layout.tabBarHeight(), undefined),
+          borderTopWidth: 0,
+          borderColor: 'transparent',
+        }}
+        keyExtractor={keyExtractor}
+        ItemSeparatorComponent={SeparatorComponent}
+        keyboardShouldPersistTaps="handled"
+        initialNumToRender={10}
         removeClippedSubviews={true}
-        maxToRenderPerBatch={15}
-        windowSize={8}
-        initialNumToRender={15}
-        updateCellsBatchingPeriod={50}
-        getItemLayout={(data, index) => ({
-          length: 96,
-          offset: 96 * index,
-          index,
-        })}
+        maxToRenderPerBatch={10}
+        updateCellsBatchingPeriod={100}
+        windowSize={10}
       />
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  flatList: {
-    paddingHorizontal: 0,
-    marginHorizontal: 0,
-  },
-  backgroundPattern: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    opacity: 0.05,
-  },
-  backgroundBlur: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  listContainer: {
-    flexGrow: 1,
-  },
-  emptyListContainer: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 40,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    textAlign: 'center',
-    opacity: 0.7,
-    lineHeight: 20,
-  },
-});
 
 export default CardList;

@@ -1,27 +1,111 @@
-import React, {useContext, useState} from 'react';
-import {View, Text, StyleSheet, TouchableOpacity, Dimensions, Animated} from 'react-native';
-import {BlurView} from 'expo-blur';
+import {useState, useContext} from 'react';
+import {Animated, Easing, Dimensions, Keyboard, Text, View, TouchableOpacity} from 'react-native';
 import {Image} from 'expo-image';
-
+import {BlurView} from 'expo-blur';
 
 import ThemeContext from '../../contexts/ThemeContext';
-import {Theme} from '../../types/interfaces';
+import { Theme, ScrollToIndexFunction } from '../../types/interfaces';
 import Card from '../../models/Card';
-import colors from '../../styles/colors';
 
-interface CardListItemProps {
+export interface CardListItemProps {
   card: Card;
+  index: number;
+  scrollToIndex: ScrollToIndexFunction;
   onPress?: (card: Card) => void;
+  theme?: Theme;
 }
 
-const CardListItem: React.FC<CardListItemProps> = ({card, onPress}) => {
-  const themeContext = useContext(ThemeContext);
-  const theme: Theme = themeContext || {
+const CardListItem = (props: CardListItemProps) => {
+  const windowWidth = Dimensions.get('window').width;
+  const fillPercent = 0.55;
+  const aspectRatio = 1.4;
+
+  const startingHeight = (windowWidth * aspectRatio * fillPercent) / 2.5;
+
+  interface CardListItemState {
+    expanded: boolean;
+    showingBack: boolean;
+    screenWidth: number;
+    heightAnim: Animated.Value;
+    widthAnim: Animated.Value;
+    containerHeightAnim: Animated.Value;
+    labelOpacityAnim: Animated.Value;
+    minHeight: number;
+    maxHeight: number;
+    minWidth: number;
+    maxWidth: number;
+    posY: number;
+  }
+
+  const [state, setState] = useState<CardListItemState>({
+    expanded: false,
+    showingBack: false,
+    screenWidth: windowWidth,
+    heightAnim: new Animated.Value(startingHeight),
+    widthAnim: new Animated.Value(windowWidth * fillPercent),
+    containerHeightAnim: new Animated.Value(startingHeight / 2),
+    labelOpacityAnim: new Animated.Value(1.0),
+    minHeight: startingHeight,
+    maxHeight: windowWidth * aspectRatio,
+    minWidth: windowWidth * fillPercent,
+    maxWidth: windowWidth,
+    posY: 0,
+  });
+
+  // Use context to get theme if not provided as prop
+  const theme = props.theme || useContext(ThemeContext) || {
     name: 'dark',
     backgroundColor: '#000000',
     foregroundColor: '#FFFFFF',
     dividerColor: '#444444',
-    translucentBackgroundColor: 'rgba(0,0,0,0.5)',
+    translucentBackgroundColor: 'rgba(0,0,0,0.5)'
+  };
+
+  const getAspectBackgroundColor = (aspects: string[]): string => {
+    if (aspects.length === 0) return '#808080';
+    
+    const aspectsLower = aspects.map(a => a.toLowerCase());
+    const primaryAspect = aspectsLower.find(a => !['villainy', 'heroism'].includes(a)) || aspectsLower[0];
+    
+    switch (primaryAspect) {
+      case 'aggression':
+        return '#D25A56';
+      case 'command':
+        return '#2B4C36';
+      case 'vigilance':
+        return '#2C3E5C';
+      case 'cunning':
+        return '#E6C547';
+      case 'villainy':
+        return '#1A1A1A';
+      case 'heroism':
+        return '#D8D8D8';
+      default:
+        return '#4A4A4A';
+    }
+  };
+
+  const getContentPosition = (cardType: string) => {
+    const type = cardType.toLowerCase();
+    
+    switch (type) {
+      case 'unit':
+        const isVehicle = props.card.traits.some(trait => trait.toLowerCase().includes('vehicle'));
+        return { 
+          top: isVehicle ? '27%' : '17%', 
+          left: '15%' 
+        };
+      case 'upgrade':
+        return { top: '15%', left: '15%' };
+      case 'event':
+        return { top: '70%', left: '15%' };
+      case 'leader':
+        return { top: '15%', left: '15%' };
+      case 'base':
+        return { top: '20%', left: '15%' };
+      default:
+        return { top: '15%', left: '15%' };
+    }
   };
 
   const getRarityAbbreviation = (rarity: string): string => {
@@ -39,270 +123,189 @@ const CardListItem: React.FC<CardListItemProps> = ({card, onPress}) => {
     }
   };
 
-  const getAspectBackgroundColor = (aspects: string[]): string => {
-    if (aspects.length === 0) return '#808080'; // Gray for no aspects
-    
-    const aspectsLower = aspects.map(a => a.toLowerCase());
-    
-    // Find the primary aspect
-    const primaryAspect = aspectsLower.find(a => !['villainy', 'heroism'].includes(a)) || aspectsLower[0];
-    
-    switch (primaryAspect) {
-      case 'aggression':
-        return '#D25A56'; // More vibrant muted red
-      case 'command':
-        return '#2B4C36'; // Muted dark green
-      case 'vigilance':
-        return '#2C3E5C'; // Muted dark blue
-      case 'cunning':
-        return '#E6C547'; // More vibrant muted yellow
-      case 'villainy':
-        return '#1A1A1A'; // Dark gray
-      case 'heroism':
-        return '#D8D8D8'; // Muted light gray
-      default:
-        return '#4A4A4A'; // Medium gray
+  const toggleExpanded = (): void => {
+    Keyboard.dismiss();
+    const needsToExpand = !state.expanded;
+    const needsToCollapse = state.expanded;
+
+    props.scrollToIndex(props.index);
+
+    const t = 300;
+    const easing = Easing.elastic(0);
+
+    if (needsToExpand || needsToCollapse) {
+      Animated.sequence([
+        Animated.parallel([
+          Animated.timing(state.heightAnim, {
+            toValue: state.expanded ? state.minHeight : state.maxHeight,
+            duration: t,
+            useNativeDriver: false,
+            easing: easing,
+          }),
+          Animated.timing(state.widthAnim, {
+            toValue: state.expanded ? state.minWidth : state.maxWidth,
+            duration: t,
+            useNativeDriver: false,
+            easing: easing,
+          }),
+          Animated.timing(state.containerHeightAnim, {
+            toValue: state.expanded ? state.minHeight / 2 : state.maxHeight,
+            duration: t,
+            useNativeDriver: false,
+            easing: easing,
+          }),
+          Animated.timing(state.labelOpacityAnim, {
+            toValue: state.expanded ? 1.0 : 0.0,
+            duration: t,
+            useNativeDriver: false,
+            easing: easing,
+          }),
+        ]),
+      ])
+        .start(() => props.scrollToIndex(props.index));
+    }
+
+    setState({
+      ...state,
+      expanded: !needsToCollapse,
+    });
+
+    if (props.onPress) {
+      props.onPress(props.card);
     }
   };
 
-  const handlePress = () => {
-    const newExpanded = !expanded;
-    const toValue = newExpanded ? fullCardHeight : 80;
-    
-    Animated.parallel([
-      Animated.timing(heightAnim, {
-        toValue,
-        duration: 250,
-        useNativeDriver: false,
-      }),
-      Animated.timing(textOpacityAnim, {
-        toValue: newExpanded ? 0.0 : 1.0,
-        duration: 150,
-        useNativeDriver: false,
-      }),
-    ]).start();
-    
-    setExpanded(newExpanded);
-    
-    if (onPress) {
-      onPress(card);
-    }
-  };
-
-  const windowWidth = Dimensions.get('window').width;
-  const imageWidth = windowWidth * 0.44;
-  const imageHeight = 80; // Fixed height to match text area
-  
-  // Calculate full card height when width equals screen width
-  const cardAspectRatio = 1.4; // Standard card aspect ratio (height/width)
-  const fullCardHeight = windowWidth * cardAspectRatio;
-  
-  const [expanded, setExpanded] = useState(false);
-  const [heightAnim] = useState(new Animated.Value(80));
-  const [textOpacityAnim] = useState(new Animated.Value(1.0));
-
-  // Get card type-specific content position for viewport into artwork
-  const getContentPosition = (cardType: string) => {
-    const type = cardType.toLowerCase();
-    
-    switch (type) {
-      case 'unit':
-        // Check if unit is a vehicle and adjust accordingly
-        const isVehicle = card.traits.some(trait => trait.toLowerCase().includes('vehicle'));
-        return { 
-          top: isVehicle ? '27%' : '17%', 
-          left: '15%' 
-        }; // Show lower section for vehicles, standard for other units
-      case 'upgrade':
-        return { top: '15%', left: '15%' }; // Standard positioning
-      case 'event':
-        return { top: '70%', left: '15%' }; // Show lower half for events
-      case 'leader':
-        return { top: '15%', left: '15%' }; // Standard positioning
-      case 'base':
-        return { top: '20%', left: '15%' }; // Move down 5% for bases
-      default:
-        return { top: '15%', left: '15%' }; // Standard positioning
-    }
-  };
-
-  const contentPosition = getContentPosition(card.type);
-  const aspectBackgroundColor = getAspectBackgroundColor(card.aspects);
-  
-  // Use black text for light backgrounds, white text for dark backgrounds
-  const getTextColor = (backgroundColor: string): string => {
-    if (backgroundColor === '#D8D8D8') return '#000000'; // Black text on light gray
-    return '#FFFFFF'; // White text on all dark colors
-  };
-  
-  const textColor = getTextColor(aspectBackgroundColor);
+  const aspectBackgroundColor = getAspectBackgroundColor(props.card.aspects);
+  const textColor = aspectBackgroundColor === '#D8D8D8' ? '#000000' : '#FFFFFF';
+  const contentPosition = getContentPosition(props.card.type);
 
   return (
-    <TouchableOpacity onPress={handlePress} activeOpacity={0.8}>
-      <Animated.View style={[styles.outerContainer, { minHeight: heightAnim }]}>
-        <View style={styles.cardContainer}>
-          <View style={[styles.backgroundLayer, {backgroundColor: aspectBackgroundColor}]} />
-          <BlurView intensity={15} tint={theme.name === 'dark' ? 'dark' : 'light'} style={styles.blurContainer}>
-            <View style={styles.cardContent}>
-              <Animated.View style={[styles.cardInfo, { opacity: textOpacityAnim }]}>
-                <Text 
-                  style={[
-                    styles.cardTitle, 
-                    {
-                      color: textColor,
-                      backgroundColor: 'transparent',
-                    }
-                  ]} 
-                  numberOfLines={1}
-                >
-                  {card.title}
-                </Text>
-                <Text 
-                  style={[
-                    styles.cardSubtitle,
-                    {
-                      color: textColor,
-                      backgroundColor: 'transparent',
-                    }
-                  ]}
-                  numberOfLines={1}
-                >
-                  {card.subtitle || ' '}
-                </Text>
-                <Text 
-                  style={[
-                    styles.cardMeta,
-                    {
-                      color: textColor,
-                      backgroundColor: 'transparent',
-                    }
-                  ]}
-                  numberOfLines={1}
-                >
-                  {`${card.set} ${card.number} • ${card.type} • ${getRarityAbbreviation(card.rarity)}`}
-                </Text>
-              </Animated.View>
-            </View>
-          </BlurView>
-          <View style={[styles.cardBorder, {borderColor: theme.dividerColor}]} />
-        </View>
-        {card.frontArt && (
-          <View style={[styles.cardImageContainer, { width: imageWidth }]}>
-            <Image
-              source={{ uri: card.type.toLowerCase() === 'leader' ? card.backArt : card.frontArt }}
-              style={[styles.cardImage, {
-                width: imageWidth * 1.43,
-                height: 80 * 1.43,
-                left: -imageWidth * 0.215,
-                top: -17.2
-              }]}
-              contentFit="cover"
-              contentPosition={contentPosition}
-              transition={200}
-            />
+    <Animated.View
+      style={{
+        height: state.containerHeightAnim,
+        marginVertical: 0,
+        overflow: 'hidden',
+      }}>
+      <TouchableOpacity
+        testID={`card-item-${props.index}`}
+        onPress={() => toggleExpanded()}
+        activeOpacity={0.8}
+        style={{
+          backgroundColor: state.expanded ? '#000000' : aspectBackgroundColor,
+          opacity: 0.8,
+          flex: 1,
+          position: 'relative',
+        }}>
+        <BlurView intensity={15} tint={theme.name === 'dark' ? 'dark' : 'light'} style={{
+          flex: 1,
+          overflow: 'hidden',
+        }}>
+          <View style={{
+            paddingLeft: 12,
+            paddingRight: 0,
+            flexDirection: 'row',
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+            height: startingHeight * 2,
+          }}>
+            <Animated.View style={{
+              flex: 1,
+              paddingRight: 8,
+              paddingTop: 6,
+              paddingBottom: 8,
+              justifyContent: 'center',
+              opacity: state.labelOpacityAnim,
+            }}>
+              <Text 
+                style={{
+                  fontSize: 16,
+                  fontWeight: 'bold',
+                  paddingHorizontal: 6,
+                  paddingVertical: 0,
+                  borderRadius: 3,
+                  marginBottom: 4,
+                  lineHeight: 18,
+                  color: textColor,
+                }} 
+                numberOfLines={1}
+              >
+                {props.card.title}
+              </Text>
+              <Text 
+                style={{
+                  fontSize: 12,
+                  fontWeight: '400',
+                  fontStyle: 'italic',
+                  paddingHorizontal: 6,
+                  paddingVertical: 1,
+                  borderRadius: 3,
+                  marginBottom: 4,
+                  color: textColor,
+                }}
+                numberOfLines={1}
+              >
+                {props.card.subtitle || ' '}
+              </Text>
+              <Text 
+                style={{
+                  fontSize: 10,
+                  fontWeight: '500',
+                  paddingHorizontal: 6,
+                  paddingVertical: 1,
+                  borderRadius: 3,
+                  opacity: 0.9,
+                  marginBottom: 4,
+                  color: textColor,
+                }}
+                numberOfLines={1}
+              >
+                {`${props.card.set} ${props.card.number} • ${props.card.type} • ${getRarityAbbreviation(props.card.rarity)}`}
+              </Text>
+            </Animated.View>
           </View>
-        )}
-      </Animated.View>
-    </TouchableOpacity>
+        </BlurView>
+        
+        <Animated.View
+          style={{
+            position: 'absolute',
+            top: 0,
+            right: state.expanded ? 0 : -60,
+            bottom: 0,
+            overflow: 'hidden',
+            height: state.heightAnim,
+            width: state.widthAnim,
+          }}>
+          <Image
+            source={{
+              uri: props.card.type.toLowerCase() === 'leader' ? props.card.backArt : props.card.frontArt
+            }}
+            style={{
+              width: '100%',
+              height: '100%',
+              borderRadius: 24,
+              position: 'relative',
+              left: state.expanded ? 0 : -30,
+            }}
+            contentFit={state.expanded ? "contain" : "cover"}
+            contentPosition={state.expanded ? undefined : contentPosition}
+            transition={200}
+          />
+        </Animated.View>
+        
+        <View style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          borderWidth: 0,
+          borderRadius: 0,
+          borderColor: 'transparent',
+          opacity: 0,
+        }} />
+      </TouchableOpacity>
+    </Animated.View>
   );
 };
-
-const styles = StyleSheet.create({
-  outerContainer: {
-    position: 'relative',
-    marginLeft: 0,
-    marginVertical: 1,
-    minHeight: 80,
-    overflow: 'hidden',
-  },
-  cardContainer: {
-    borderRadius: 0,
-    overflow: 'hidden',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    flex: 1,
-  },
-  backgroundLayer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: 0,
-    opacity: 0.8,
-  },
-  blurContainer: {
-    flex: 1,
-    borderRadius: 0,
-    overflow: 'hidden',
-  },
-  cardContent: {
-    paddingLeft: 12,
-    paddingRight: 0,
-    paddingTop: 0,
-    paddingBottom: 0,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    height: 80,
-  },
-  cardInfo: {
-    flex: 1,
-    paddingRight: 8,
-    paddingTop: 12,
-    paddingBottom: 12,
-    justifyContent: 'center',
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    paddingHorizontal: 6,
-    paddingVertical: 0,
-    borderRadius: 3,
-    marginBottom: 0,
-    lineHeight: 18,
-  },
-  cardSubtitle: {
-    fontSize: 12,
-    fontWeight: '400',
-    fontStyle: 'italic',
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 3,
-    marginBottom: 4,
-  },
-  cardMeta: {
-    fontSize: 10,
-    fontWeight: '500',
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 3,
-    opacity: 0.9,
-  },
-  cardBorder: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderWidth: 1,
-    borderRadius: 0,
-    opacity: 0.3,
-  },
-  cardImageContainer: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    overflow: 'hidden',
-  },
-  cardImage: {
-    width: '100%',
-    height: '100%',
-  },
-});
 
 export default CardListItem;
