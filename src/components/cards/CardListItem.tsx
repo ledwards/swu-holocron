@@ -1,5 +1,5 @@
-import React, {useContext} from 'react';
-import {View, Text, StyleSheet, TouchableOpacity, Dimensions} from 'react-native';
+import React, {useContext, useState} from 'react';
+import {View, Text, StyleSheet, TouchableOpacity, Dimensions, Animated} from 'react-native';
 import {BlurView} from 'expo-blur';
 import {Image} from 'expo-image';
 
@@ -66,6 +66,24 @@ const CardListItem: React.FC<CardListItemProps> = ({card, onPress}) => {
   };
 
   const handlePress = () => {
+    const newExpanded = !expanded;
+    const toValue = newExpanded ? fullCardHeight : 80;
+    
+    Animated.parallel([
+      Animated.timing(heightAnim, {
+        toValue,
+        duration: 250,
+        useNativeDriver: false,
+      }),
+      Animated.timing(textOpacityAnim, {
+        toValue: newExpanded ? 0.0 : 1.0,
+        duration: 150,
+        useNativeDriver: false,
+      }),
+    ]).start();
+    
+    setExpanded(newExpanded);
+    
     if (onPress) {
       onPress(card);
     }
@@ -74,6 +92,14 @@ const CardListItem: React.FC<CardListItemProps> = ({card, onPress}) => {
   const windowWidth = Dimensions.get('window').width;
   const imageWidth = windowWidth * 0.44;
   const imageHeight = 80; // Fixed height to match text area
+  
+  // Calculate full card height when width equals screen width
+  const cardAspectRatio = 1.4; // Standard card aspect ratio (height/width)
+  const fullCardHeight = windowWidth * cardAspectRatio;
+  
+  const [expanded, setExpanded] = useState(false);
+  const [heightAnim] = useState(new Animated.Value(80));
+  const [textOpacityAnim] = useState(new Animated.Value(1.0));
 
   // Get card type-specific content position for viewport into artwork
   const getContentPosition = (cardType: string) => {
@@ -113,12 +139,12 @@ const CardListItem: React.FC<CardListItemProps> = ({card, onPress}) => {
 
   return (
     <TouchableOpacity onPress={handlePress} activeOpacity={0.8}>
-      <View style={styles.outerContainer}>
+      <Animated.View style={[styles.outerContainer, { minHeight: heightAnim }]}>
         <View style={styles.cardContainer}>
           <View style={[styles.backgroundLayer, {backgroundColor: aspectBackgroundColor}]} />
           <BlurView intensity={15} tint={theme.name === 'dark' ? 'dark' : 'light'} style={styles.blurContainer}>
             <View style={styles.cardContent}>
-              <View style={styles.cardInfo}>
+              <Animated.View style={[styles.cardInfo, { opacity: textOpacityAnim }]}>
                 <Text 
                   style={[
                     styles.cardTitle, 
@@ -155,7 +181,7 @@ const CardListItem: React.FC<CardListItemProps> = ({card, onPress}) => {
                 >
                   {`${card.set} ${card.number} • ${card.type} • ${getRarityAbbreviation(card.rarity)}`}
                 </Text>
-              </View>
+              </Animated.View>
             </View>
           </BlurView>
           <View style={[styles.cardBorder, {borderColor: theme.dividerColor}]} />
@@ -176,7 +202,7 @@ const CardListItem: React.FC<CardListItemProps> = ({card, onPress}) => {
             />
           </View>
         )}
-      </View>
+      </Animated.View>
     </TouchableOpacity>
   );
 };
@@ -187,6 +213,7 @@ const styles = StyleSheet.create({
     marginLeft: 0,
     marginVertical: 1,
     minHeight: 80,
+    overflow: 'hidden',
   },
   cardContainer: {
     borderRadius: 0,
@@ -196,6 +223,7 @@ const styles = StyleSheet.create({
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
+    flex: 1,
   },
   backgroundLayer: {
     position: 'absolute',
