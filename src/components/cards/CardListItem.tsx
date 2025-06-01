@@ -26,7 +26,7 @@ const CardListItem = (props: CardListItemProps) => {
   };
 
   const horizontal = isHorizontalCard(props.card.type);
-  const startingHeight = (windowWidth * aspectRatio * fillPercent) / 2.5;
+  const startingHeight = (windowWidth * aspectRatio * fillPercent) / 2.5 - 5;
 
   interface CardListItemState {
     expanded: boolean;
@@ -52,7 +52,7 @@ const CardListItem = (props: CardListItemProps) => {
     screenWidth: windowWidth,
     heightAnim: new Animated.Value(startingHeight),
     widthAnim: new Animated.Value(windowWidth * fillPercent),
-    containerHeightAnim: new Animated.Value(startingHeight / 2),
+    containerHeightAnim: new Animated.Value(startingHeight / 2 - 5),
     labelOpacityAnim: new Animated.Value(1.0),
     minHeight: startingHeight,
     maxHeight: maxHeight,
@@ -200,18 +200,18 @@ const CardListItem = (props: CardListItemProps) => {
         const isUnique = props.card.unique;
         
         if (isUnique) {
-          return [{ translateY: '-15%' }]; // Move up 15% for unique units
+          return [{ translateY: '-20%' }]; // Move up 20% for unique units (was 15%, increased by 5%)
         } else {
-          return [{ translateY: '-15%' }]; // Move up 15% for non-unique units
+          return [{ translateY: '-20%' }]; // Move up 20% for non-unique units (was 15%, increased by 5%)
         }
       case 'upgrade':
-        return [{ translateY: '-15%' }]; // Move up 15% for upgrades (same as non-unique units)
+        return [{ translateY: '-20%' }]; // Move up 20% for upgrades (was 15%, increased by 5%)
       case 'event':
-        return [{ translateY: '-60%' }]; // Move up 60% for events
+        return [{ translateY: '-65%' }]; // Move up 65% for events (was 60%, increased by 5%)
       case 'base':
-        return [{ translateY: '-20%' }]; // Move up 20% for bases
+        return [{ translateY: '-25%' }]; // Move up 25% for bases (was 20%, increased by 5%)
       default:
-        return []; // No transform for other types
+        return [{ translateY: '-5%' }]; // Move up 5% for other types (was no transform)
     }
   };
 
@@ -267,7 +267,7 @@ const CardListItem = (props: CardListItemProps) => {
             easing: easing,
           }),
           Animated.timing(state.containerHeightAnim, {
-            toValue: needsToCollapse ? state.minHeight / 2 : state.maxHeight,
+            toValue: needsToCollapse ? state.minHeight / 2 - 5 : state.maxHeight,
             duration: t,
             useNativeDriver: false,
             easing: easing,
@@ -329,43 +329,45 @@ const CardListItem = (props: CardListItemProps) => {
             styles.cardInfo,
             {
               opacity: state.labelOpacityAnim,
+              zIndex: 10,
             }
           ]}>
-            <Text 
-              style={[
-                styles.cardTitle,
-                {
-                  color: textColor,
-                }
-              ]} 
-              numberOfLines={1}
+            <View 
+              style={{
+                backgroundColor: aspectBackgroundColor + '80',
+                paddingVertical: 2,
+                borderRadius: 4,
+                alignSelf: 'flex-start',
+                marginLeft: -2,
+              }}
             >
-              {props.card.unique && (
-                <Text style={{ marginRight: 6 }}>◈ </Text>
-              )}
-              {props.card.title}
-            </Text>
-            <Text 
-              style={[
-                styles.cardSubtitle,
-                {
-                  color: textColor,
-                }
-              ]}
-              numberOfLines={1}
-            >
-              {props.card.subtitle || ' '}
-            </Text>
+              <Text 
+                style={[
+                  styles.cardTitle,
+                  {
+                    color: textColor,
+                  }
+                ]} 
+                numberOfLines={1}
+              >
+                <Text style={{ fontWeight: 'bold' }}>{props.card.title}</Text>
+                {props.card.subtitle && (
+                  <Text style={{ fontWeight: 'normal', fontStyle: 'italic' }}>, {props.card.subtitle}</Text>
+                )}
+              </Text>
+            </View>
+            <View style={{ height: 5 }} />
             <Text 
               style={[
                 styles.cardMeta,
                 {
                   color: textColor,
+                  fontSize: 12,
                 }
               ]}
               numberOfLines={1}
             >
-              {`${props.card.set} ${props.card.number} • ${props.card.type} • ${getRarityAbbreviation(props.card.rarity)}`}
+              {`${props.card.type} • ${getRarityAbbreviation(props.card.rarity)} • ${props.card.set}${props.card.number}`}
             </Text>
           </Animated.View>
         </View>
