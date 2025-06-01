@@ -41,7 +41,7 @@ const SearchFooter: React.FC<SearchFooterProps> = ({
         style={[
           styles.blurBackground,
           {
-            height: layout.nativeFooterHeight() + layout.tabBarHeight() + layout.searchBarHeight() + 20,
+            height: layout.nativeFooterHeight() + layout.tabBarHeight() + layout.searchBarHeight() + 40,
           },
         ]}
         intensity={50}

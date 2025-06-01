@@ -7,7 +7,6 @@ export async function isConnectedToInternet(): Promise<boolean> {
     });
     return response.ok;
   } catch (error) {
-    console.error('No internet connection:', error);
     return false;
   }
 }
@@ -20,7 +19,6 @@ export async function getNetworkState() {
       isInternetReachable: connected,
     };
   } catch (error) {
-    console.error('Error getting network state:', error);
     return {
       isConnected: false,
       isInternetReachable: false,

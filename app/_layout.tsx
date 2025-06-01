@@ -3,6 +3,7 @@ import {View, useColorScheme, Appearance, StatusBar, ColorSchemeName, Text, Acti
 import {BlurView} from 'expo-blur';
 import {Stack} from 'expo-router';
 import {useFonts} from 'expo-font';
+import * as SplashScreen from 'expo-splash-screen';
 import 'react-native-reanimated';
 
 import Card from '../src/models/Card';
@@ -18,6 +19,9 @@ import ThemeContext from '../src/contexts/ThemeContext';
 import AllCardsContext from '../src/contexts/AllCardsContext';
 import { Theme } from '../src/types/interfaces';
 
+// Keep the splash screen visible while we fetch resources
+SplashScreen.preventAutoHideAsync();
+
 export default function RootLayout() {
   const initialTheme = useColorScheme();
   const [loaded] = useFonts({
@@ -30,7 +34,7 @@ export default function RootLayout() {
 
   const [allCards, setAllCards] = useState<Card[]>([]);
   const [cardsLoaded, setCardsLoaded] = useState<boolean>(false);
-  const [loadingMessage, setLoadingMessage] = useState<string>('Loading...');
+  const [loadingMessage, setLoadingMessage] = useState<string>('');
   const [internetConnection, setInternetConnection] = useState<boolean>(false);
 
   useEffect(() => {
@@ -47,58 +51,39 @@ export default function RootLayout() {
 
   const initializeApp = async () => {
     try {
-      setLoadingMessage('Checking internet connection...');
       const connected = await isConnectedToInternet();
       setInternetConnection(connected);
 
-      setLoadingMessage('Checking for existing card data...');
       const dataExists = await cardDefinitionsExist();
 
       // Force download to get fresh data every time for now
       if (connected) {
-        setLoadingMessage('Downloading fresh card data from GitHub...');
         const downloadSuccess = await downloadCardDefinitions();
         if (!downloadSuccess) {
-          setLoadingMessage('Failed to download card data. Please check your internet connection.');
           return;
         }
       } else if (!dataExists && !connected) {
-        setLoadingMessage('No internet connection and no cached data available.');
         return;
       }
 
-      setLoadingMessage('Loading cards...');
       const cards = await loadCardDefinitions();
-      console.log(`Loaded ${cards.length} cards into app`);
       setAllCards(cards);
       setCardsLoaded(true);
+      
+      // Hide splash screen when cards are loaded
+      await SplashScreen.hideAsync();
     } catch (error) {
-      console.error('Error initializing app:', error);
-      setLoadingMessage('Error loading card data. Please restart the app.');
+      // Silent error handling
+      await SplashScreen.hideAsync();
     }
   };
 
-  if (!loaded || !cardsLoaded) {
-    return (
-      <View style={{ 
-        flex: 1, 
-        justifyContent: 'center', 
-        alignItems: 'center',
-        backgroundColor: theme.backgroundColor 
-      }}>
-        <ActivityIndicator size="large" color={theme.foregroundColor} />
-        <Text style={{ 
-          color: theme.foregroundColor, 
-          marginTop: 20,
-          fontSize: 16,
-          textAlign: 'center',
-          paddingHorizontal: 40
-        }}>
-          {loadingMessage}
-        </Text>
-        <StatusBar barStyle={theme.statusBarStyle as 'light-content' | 'dark-content' | 'default'} />
-      </View>
-    );
+  if (!loaded) {
+    return null; // Let splash screen show while fonts load
+  }
+
+  if (!cardsLoaded) {
+    return null; // Let splash screen show while cards load
   }
 
   return (

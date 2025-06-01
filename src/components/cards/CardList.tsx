@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useContext, useRef} from 'react';
+import React, {useState, useEffect, useContext, useRef, useCallback, JSX} from 'react';
 import {View, ActivityIndicator, Text, FlatList} from 'react-native';
 
 import CardListItem  from './CardListItem';
@@ -12,10 +12,12 @@ import {Theme, ScrollToIndexFunction} from '../../types/interfaces';
 
 interface CardListProps {
   onCardPress?: (card: Card) => void;
+  searchQuery?: string;
 }
 
-const CardList: React.FC<CardListProps> = ({onCardPress}) => {
+const CardList: React.FC<CardListProps> = ({onCardPress, searchQuery = ''}) => {
   const [loading, setLoading] = useState(false);
+  const [filteredCards, setFilteredCards] = useState<Card[]>([]);
 
   const flatListRef = useRef<FlatList<Card>>(null);
 
@@ -30,6 +32,55 @@ const CardList: React.FC<CardListProps> = ({onCardPress}) => {
 
   const allCardsContext = useContext(AllCardsContext);
   const allCards: Card[] = allCardsContext || [];
+
+  // Helper function to check if a word is found as a whole word in text
+  const isWholeWord = (text: string, word: string): boolean => {
+    const regex = new RegExp(`\\b${word}\\b`, 'i');
+    return regex.test(text);
+  };
+
+  // Calculate relevance score for a card based on search query
+  const calculateRelevance = (card: Card, searchText: string): number => {
+    let score = 0;
+    const search = searchText.toLowerCase().trim();
+    
+    // If no search text, return 0
+    if (!search) return 0;
+    
+    // Check title (highest weight)
+    if (card.title.toLowerCase().includes(search)) {
+      score += card.title.toLowerCase() === search ? 1000 : 500; // Exact match gets higher score
+    }
+    
+    // Check subtitle (high weight)
+    if (card.subtitle && card.subtitle.toLowerCase().includes(search)) {
+      score += card.subtitle.toLowerCase() === search ? 800 : 400;
+    }
+    
+    return score;
+  };
+
+  // Filter and sort cards based on search query
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredCards(allCards);
+      return;
+    }
+
+    const searchText = searchQuery.toLowerCase().trim();
+    
+    // Filter cards that match the search and calculate relevance scores
+    const cardsWithScores = allCards
+      .map(card => ({
+        card,
+        score: calculateRelevance(card, searchText)
+      }))
+      .filter(item => item.score > 0)
+      .sort((a, b) => b.score - a.score) // Sort by relevance score (highest first)
+      .map(item => item.card); // Extract just the cards
+
+    setFilteredCards(cardsWithScores);
+  }, [searchQuery, allCards]);
 
   const scrollToIndex: ScrollToIndexFunction = (index: number): void => {
     if (flatListRef.current) {
@@ -58,10 +109,10 @@ const CardList: React.FC<CardListProps> = ({onCardPress}) => {
   const renderEmptyComponent = () => (
     <View style={styles.listEmptyContainer}>
       <Text style={[styles.defaultTextTitle, {color: theme.foregroundColor}]}>
-        Star Wars Unlimited Cards
+        {searchQuery ? 'No Results Found' : 'Star Wars Unlimited Cards'}
       </Text>
       <Text style={[styles.defaultTextDescription, {color: theme.foregroundColor}]}>
-        Browse all Star Wars Unlimited cards
+        {searchQuery ? `No cards match "${searchQuery}"` : 'Browse all Star Wars Unlimited cards'}
       </Text>
     </View>
   );
@@ -90,7 +141,7 @@ const CardList: React.FC<CardListProps> = ({onCardPress}) => {
       <FlatList
         ref={flatListRef}
         contentContainerStyle={styles.flatListContentContainer}
-        data={allCards}
+        data={filteredCards}
         renderItem={renderCard}
         ListEmptyComponent={renderEmptyComponent}
         ListHeaderComponent={() => <></>}

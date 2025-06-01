@@ -26,7 +26,7 @@ const CardListItem = (props: CardListItemProps) => {
   };
 
   const horizontal = isHorizontalCard(props.card.type);
-  const startingHeight = (windowWidth * aspectRatio * fillPercent) / 2.5;
+  const startingHeight = (windowWidth * aspectRatio * fillPercent) / 2.5 - 5;
 
   interface CardListItemState {
     expanded: boolean;
@@ -52,7 +52,7 @@ const CardListItem = (props: CardListItemProps) => {
     screenWidth: windowWidth,
     heightAnim: new Animated.Value(startingHeight),
     widthAnim: new Animated.Value(windowWidth * fillPercent),
-    containerHeightAnim: new Animated.Value(startingHeight / 2),
+    containerHeightAnim: new Animated.Value(startingHeight / 2 - 5),
     labelOpacityAnim: new Animated.Value(1.0),
     minHeight: startingHeight,
     maxHeight: maxHeight,
@@ -60,6 +60,11 @@ const CardListItem = (props: CardListItemProps) => {
     maxWidth: maxWidth,
     posY: 0,
   });
+
+  // Track the current expanded state for immediate contentPosition updates
+  const [currentlyExpanded, setCurrentlyExpanded] = useState(false);
+  // Track when background should be black (delayed for expansion)
+  const [blackBackground, setBlackBackground] = useState(false);
 
 
   // Use context to get theme if not provided as prop
@@ -71,50 +76,175 @@ const CardListItem = (props: CardListItemProps) => {
     translucentBackgroundColor: 'rgba(0,0,0,0.5)'
   };
 
-  const getAspectBackgroundColor = (aspects: string[]): string => {
-    if (aspects.length === 0) return '#808080';
-    
-    const aspectsLower = aspects.map(a => a.toLowerCase());
-    const primaryAspect = aspectsLower.find(a => !['villainy', 'heroism'].includes(a)) || aspectsLower[0];
-    
-    switch (primaryAspect) {
-      case 'aggression':
-        return '#D25A56';
-      case 'command':
-        return '#2B4C36';
-      case 'vigilance':
-        return '#2C3E5C';
-      case 'cunning':
-        return '#E6C547';
-      case 'villainy':
-        return '#1A1A1A';
-      case 'heroism':
-        return '#D8D8D8';
-      default:
-        return '#4A4A4A';
+  const mixColorWithTheme = (color: string, isDarkTheme: boolean): string => {
+    // Convert hex to RGB
+    const hex = color.replace('#', '');
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+
+    // Mix 30% with black (dark theme) or 50% with white (light theme)
+    if (isDarkTheme) {
+      const newR = Math.round(r * 0.7);
+      const newG = Math.round(g * 0.7);
+      const newB = Math.round(b * 0.7);
+      return '#' + ((newR << 16) | (newG << 8) | newB).toString(16).padStart(6, '0');
+    } else {
+      const newR = Math.round((r + 255) / 2);
+      const newG = Math.round((g + 255) / 2);
+      const newB = Math.round((b + 255) / 2);
+      return '#' + ((newR << 16) | (newG << 8) | newB).toString(16).padStart(6, '0');
     }
+
+
+  };
+
+  const getAspectTextColor = (aspects: string[]): string => {
+    if (aspects.length === 0) return '#333333'; // Neutral - always black text
+
+    const aspectsLower = aspects.map(a => a.toLowerCase());
+
+    // Check for pure villainy or heroism
+    if (aspects.length === 1) {
+      if (aspectsLower[0] === 'villainy') {
+        return '#FFFFFF'; // Villainy - always white text
+      }
+      if (aspectsLower[0] === 'heroism') {
+        return '#333333'; // Heroism - always black text
+      }
+    }
+
+    // For all other combinations, use theme-based text
+    const isDarkTheme = theme.name === 'dark';
+    return isDarkTheme ? '#FFFFFF' : '#333333';
+  };
+
+  const getAspectBackgroundColor = (aspects: string[]): string => {
+    const isDarkTheme = theme.name === 'dark';
+    let baseColor = '#C5C8CA';
+
+    if (aspects.length === 0) {
+      return '#C5C8CA'; // Always medium grey for neutral
+    }
+
+    const aspectsLower = aspects.map(a => a.toLowerCase());
+
+    // Check for specific combinations
+    const hasVigilance = aspectsLower.includes('vigilance');
+    const hasCommand = aspectsLower.includes('command');
+    const hasAggression = aspectsLower.includes('aggression');
+    const hasCunning = aspectsLower.includes('cunning');
+    const hasVillainy = aspectsLower.includes('villainy');
+    const hasHeroism = aspectsLower.includes('heroism');
+
+    // Command combinations
+    if (hasCommand && hasVillainy) {
+      baseColor = '#082816'; // Command + Villainy
+    } else if (hasCommand && hasHeroism) {
+      baseColor = '#45B040'; // Command + Heroism
+    }
+    // Aggression combinations
+    else if (hasAggression && hasVillainy) {
+      baseColor = '#B6001A'; // Aggression + Villainy
+    } else if (hasAggression && hasHeroism) {
+      baseColor = '#BB5C4F'; // Aggression + Heroism
+    }
+    // Cunning combinations
+    else if (hasCunning && hasVillainy) {
+      baseColor = '#5B482E'; // Cunning + Villainy
+    } else if (hasCunning && hasHeroism) {
+      baseColor = '#E3D292'; // Cunning + Heroism
+    }
+    // Vigilance combinations
+    else if (hasVigilance && hasVillainy) {
+      baseColor = '#0B2541'; // Vigilance + Villainy
+    } else if (hasVigilance && hasHeroism) {
+      baseColor = '#7BC7E6'; // Vigilance + Heroism
+    } else {
+      const primaryAspect = aspectsLower.find(a => !['villainy', 'heroism'].includes(a)) || aspectsLower[0];
+
+      switch (primaryAspect) {
+        case 'aggression':
+          baseColor = '#941117';
+          break;
+        case 'command':
+          baseColor = '#149742';
+          break;
+        case 'vigilance':
+          baseColor = '#2285BB';
+          break;
+        case 'cunning':
+          baseColor = '#EFA827';
+          break;
+        case 'villainy':
+          return '#2A2A2A'; // Always dark grey
+        case 'heroism':
+          return '#E0E1C3'; // Always near white
+        default:
+          baseColor = '#C5C8CA';
+      }
+    }
+
+    return mixColorWithTheme(baseColor, isDarkTheme);
   };
 
   const getContentPosition = (cardType: string) => {
     const type = cardType.toLowerCase();
-    
+
     switch (type) {
       case 'unit':
-        const isVehicle = props.card.traits.some(trait => trait.toLowerCase().includes('vehicle'));
-        return { 
-          top: isVehicle ? '32%' : '27%', 
-          left: '15%' 
+        return {
+          top: '27%',
+          left: '15%'
         };
       case 'upgrade':
         return { top: '30%', left: '15%' };
       case 'event':
         return { top: '95%', left: '15%' };
       case 'leader':
-        return { top: '35%', left: '15%' };
+        return { top: '35%', left: '-60%' };
       case 'base':
-        return { top: '75%', left: '15%' };
+        return { top: '105%', left: '15%' };
       default:
         return { top: '30%', left: '15%' };
+    }
+  };
+
+  const getImageTransform = (cardType: string) => {
+    if (currentlyExpanded) return []; // No transform when expanded
+
+    const type = cardType.toLowerCase();
+
+    switch (type) {
+      case 'unit':
+        const isUnique = props.card.unique;
+
+        if (isUnique) {
+          return [{ translateY: -60 }]; // Move up for unique units
+        } else {
+          return [{ translateY: -60 }]; // Move up for non-unique units
+        }
+      case 'upgrade':
+        return [{ translateY: -60 }]; // Move up for upgrades
+      case 'event':
+        return [{ translateY: -200 }]; // Move up for events
+      case 'leader':
+        return [{ translateX: 120 }, { translateY: 15 }, { scale: 2 }]; // Move right, down, and zoom 2x to show leftmost leader artwork
+      case 'base':
+        return [{ translateY: -30 }]; // Move up slightly for bases
+      default:
+        return [{ translateY: -15 }]; // Move up for other types
+    }
+  };
+
+  const getAspectBorderColor = (aspects: string[]): string => {
+    const textColor = getAspectTextColor(aspects);
+
+    // Use dark grey for white text, light grey for black text
+    if (textColor === '#FFFFFF') {
+      return '#666666'; // Dark grey border for white text
+    } else {
+      return '#CCCCCC'; // Light grey border for black text
     }
   };
 
@@ -133,11 +263,39 @@ const CardListItem = (props: CardListItemProps) => {
     }
   };
 
+  const getDisplayType = (card: Card): string => {
+    if (card.type.toLowerCase() === 'unit') {
+      if (card.arenas.some(arena => arena.toLowerCase() === 'space')) {
+        return 'Space Unit';
+      } else if (card.arenas.some(arena => arena.toLowerCase() === 'ground')) {
+        return 'Ground Unit';
+      }
+    }
+    return card.type;
+  };
+
   const toggleExpanded = (): void => {
     Keyboard.dismiss();
     const needsToExpand = !state.expanded;
     const needsToFlip = false; // SWU cards don't flip like SWCCG
     const needsToCollapse = state.expanded;
+    const newExpandedState = !needsToCollapse;
+
+    // Instantly change expanded state to remove crop
+    setCurrentlyExpanded(newExpandedState);
+
+    // Handle background color timing
+    if (needsToCollapse) {
+      // When collapsing, immediately remove black background
+      setBlackBackground(false);
+    }
+    // When expanding, we'll set black background at animation end
+
+    setState({
+      ...state,
+      showingBack: needsToFlip,
+      expanded: newExpandedState,
+    });
 
     const t = 300;
     const easing = Easing.elastic(0);
@@ -145,26 +303,21 @@ const CardListItem = (props: CardListItemProps) => {
     if (needsToExpand || needsToCollapse) {
       Animated.sequence([
         Animated.parallel([
-          Animated.timing(state.heightAnim, {
-            toValue: state.expanded ? state.minHeight : state.maxHeight,
-            duration: t,
-            useNativeDriver: false,
-            easing: easing,
-          }),
+
           Animated.timing(state.widthAnim, {
-            toValue: state.expanded ? state.minWidth : state.maxWidth,
+            toValue: needsToCollapse ? state.minWidth : state.maxWidth,
             duration: t,
             useNativeDriver: false,
             easing: easing,
           }),
           Animated.timing(state.containerHeightAnim, {
-            toValue: state.expanded ? state.minHeight / 2 : state.maxHeight,
+            toValue: needsToCollapse ? state.minHeight / 2 - 5 : state.maxHeight,
             duration: t,
             useNativeDriver: false,
             easing: easing,
           }),
           Animated.timing(state.labelOpacityAnim, {
-            toValue: state.expanded ? 1.0 : 0.0,
+            toValue: needsToCollapse ? 1.0 : 0.0,
             duration: t,
             useNativeDriver: true,
             easing: easing,
@@ -174,14 +327,13 @@ const CardListItem = (props: CardListItemProps) => {
         .start(() => {
           // Scroll after animation completes to avoid jitters
           props.scrollToIndex(props.index);
+
+          // Set black background when expansion completes
+          if (needsToExpand) {
+            setBlackBackground(true);
+          }
         });
     }
-
-    setState({
-      ...state,
-      showingBack: needsToFlip,
-      expanded: !needsToCollapse,
-    });
 
     if (props.onPress) {
       props.onPress(props.card);
@@ -189,7 +341,8 @@ const CardListItem = (props: CardListItemProps) => {
   };
 
   const aspectBackgroundColor = getAspectBackgroundColor(props.card.aspects);
-  const textColor = aspectBackgroundColor === '#D8D8D8' ? '#000000' : '#FFFFFF';
+  const textColor = getAspectTextColor(props.card.aspects);
+  const borderColor = getAspectBorderColor(props.card.aspects);
   const contentPosition = getContentPosition(props.card.type);
 
   return (
@@ -207,8 +360,9 @@ const CardListItem = (props: CardListItemProps) => {
           style={[
             styles.cardListItemContainer,
             {
-              backgroundColor: state.expanded ? '#000000' : aspectBackgroundColor,
-              opacity: 0.8,
+              backgroundColor: blackBackground ? '#000000' : aspectBackgroundColor,
+              borderWidth: 0,
+              borderRadius: 6,
             }
           ]}>
         <View style={[
@@ -221,50 +375,55 @@ const CardListItem = (props: CardListItemProps) => {
             styles.cardInfo,
             {
               opacity: state.labelOpacityAnim,
+              zIndex: 10,
             }
           ]}>
-            <Text 
-              style={[
-                styles.cardTitle,
-                {
-                  color: textColor,
-                }
-              ]} 
-              numberOfLines={1}
+            <View
+              style={{
+                backgroundColor: aspectBackgroundColor + '80',
+                paddingVertical: 2,
+                borderRadius: 4,
+                alignSelf: 'flex-start',
+                marginLeft: -2,
+              }}
             >
-              {props.card.title}
-            </Text>
-            <Text 
-              style={[
-                styles.cardSubtitle,
-                {
-                  color: textColor,
-                }
-              ]}
-              numberOfLines={1}
-            >
-              {props.card.subtitle || ' '}
-            </Text>
-            <Text 
+              <Text
+                style={[
+                  styles.cardTitle,
+                  {
+                    color: textColor,
+                  }
+                ]}
+                numberOfLines={1}
+              >
+                <Text style={{ fontWeight: 'bold' }}>{props.card.title}</Text>
+                {props.card.subtitle && (
+                  <Text style={{ fontWeight: 'normal', fontStyle: 'italic' }}>, {props.card.subtitle}</Text>
+                )}
+              </Text>
+            </View>
+            <View style={{ height: 5 }} />
+            <Text
               style={[
                 styles.cardMeta,
                 {
                   color: textColor,
+                  fontSize: 12,
                 }
               ]}
               numberOfLines={1}
             >
-              {`${props.card.set} ${props.card.number} • ${props.card.type} • ${getRarityAbbreviation(props.card.rarity)}`}
+              {`${getDisplayType(props.card)} • ${props.card.set} ${props.card.number} • ${getRarityAbbreviation(props.card.rarity)}`}
             </Text>
           </Animated.View>
         </View>
-        
+
         <Animated.View
           style={[
             styles.cardListItem,
             {
-              height: state.heightAnim,
               width: state.widthAnim,
+              aspectRatio: horizontal ? 1.4 : 1/1.4,
             },
             !state.expanded
               ? styles.cardListItemExpanded
@@ -272,22 +431,23 @@ const CardListItem = (props: CardListItemProps) => {
           ]}>
           <Image
             source={{
-              uri: props.card.type.toLowerCase() === 'leader' 
-                ? (state.expanded ? props.card.frontArt : props.card.backArt)
-                : props.card.frontArt
+              uri: props.card.frontArt
             }}
             style={[
               styles.cardListItemImage,
               !state.expanded
                 ? styles.cardListItemImageExpanded
                 : styles.cardListItemImageCollapsed,
-              { borderRadius: 20 },
+              {
+                borderRadius: 20,
+                transform: getImageTransform(props.card.type)
+              },
             ]}
-            contentFit={state.expanded && horizontal ? "contain" : "cover"}
-            contentPosition={state.expanded && horizontal ? undefined : contentPosition}
+            contentFit={currentlyExpanded && horizontal ? "contain" : "cover"}
+            contentPosition={currentlyExpanded ? undefined : contentPosition}
           />
         </Animated.View>
-        
+
         </View>
       </TouchableWithoutFeedback>
     </Animated.View>

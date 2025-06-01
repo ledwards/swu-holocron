@@ -1,8 +1,8 @@
-import React, {useState, useEffect, useContext, useRef} from 'react';
+import React, {useState, useEffect, useContext, useRef, JSX} from 'react';
 import {View, ActivityIndicator, Text, Animated, FlatList} from 'react-native';
 
 import CardListItem  from './CardListItem';
-import CardSearchFooter from './CardSearchFooter';
+
 import CardPresenter from '../../presenters/CardPresenter';
 import FilterQuerySet from '../../models/FilterQuerySet';
 import Card from '../../models/Card';
@@ -147,25 +147,50 @@ const SearchableCardList: React.FC<SearchableCardListProps> = (props) => {
   };
 
   /**
-   * Process a simple title search filter
+   * Calculate relevance score for a card based on search text
+   */
+  const calculateRelevanceScore = (card: Card, searchText: string): number => {
+    let score = 0;
+    const search = searchText.toLowerCase().trim();
+    
+    // If no search text, return 0
+    if (!search) return 0;
+    
+    // Check title (highest weight)
+    if (card.title.toLowerCase().includes(search)) {
+      score += card.title.toLowerCase() === search ? 1000 : 500; // Exact match gets higher score
+    }
+    
+    // Check subtitle (high weight)
+    if (card.subtitle && card.subtitle.toLowerCase().includes(search)) {
+      score += card.subtitle.toLowerCase() === search ? 800 : 400;
+    }
+    
+    return score;
+  };
+
+  /**
+   * Process a comprehensive text search filter with relevance scoring
    */
   const searchFilterFunction = (text: string): void => {
-    const newData = allCards.filter(card => {
-      const textData = text;
-      const itemData = `${card.title} ${card.sortTitle} ${card.abbr || ' '}`
-        .toLowerCase()
-        .trim();
+    if (!text.trim()) {
+      setData([]);
+      return;
+    }
 
-      // Allow for unordered word matches
-      const textDataList = textData.split(' ');
-      const matches = textDataList.filter(
-        (w: string) => itemData.indexOf(w) > -1,
-      );
+    const searchText = text.toLowerCase().trim();
+    
+    // Calculate relevance scores and filter out cards with 0 relevance
+    const cardsWithScores = allCards
+      .map(card => ({
+        card,
+        score: calculateRelevanceScore(card, searchText)
+      }))
+      .filter(item => item.score > 0) // Only include cards with matches
+      .sort((a, b) => b.score - a.score) // Sort by relevance (highest first)
+      .map(item => item.card); // Extract just the cards
 
-      return matches.length === textDataList.length;
-    });
-
-    setData(newData);
+    setData(cardsWithScores);
   };
 
   /**
@@ -259,7 +284,7 @@ const SearchableCardList: React.FC<SearchableCardListProps> = (props) => {
     return (
       <CardListItem
         theme={theme}
-        item={new CardPresenter(item)}
+        card={item}
         index={index}
         scrollToIndex={scrollToIndex}
       />
@@ -310,18 +335,6 @@ const SearchableCardList: React.FC<SearchableCardListProps> = (props) => {
         maxToRenderPerBatch={10} // Reduce number in each render batch
         updateCellsBatchingPeriod={100} // Increase time between renders
         windowSize={10} // Reduce the window size
-      />
-      <CardSearchFooter
-        query={query}
-        filterQuerySet={filterQuerySet}
-        nativeFooterHeight={layout.nativeFooterHeight()}
-        searchBarHeight={layout.searchBarHeight()}
-        tabBarHeight={layout.tabBarHeight()}
-        searchMode={currentSearchMode()}
-        allCards={allCards}
-        data={data}
-        searchCallback={searchRouter}
-        toggleSearchMode={toggleSearchMode}
       />
     </>
   );

@@ -1,12 +1,13 @@
-import React, {useContext} from 'react';
+import React, {useContext, useState} from 'react';
 import {View} from 'react-native';
 import {Icon} from 'react-native-elements';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 
 
 import CardsScreen from '../../src/components/cards/CardsScreen';
-import DecklistsScreen from '../../src/components/decklists/DecklistsScreen';
+
 import SearchFooter from '../../src/components/SearchFooter';
+import SearchContext from '../../src/contexts/SearchContext';
 
 import styles from '../../src/styles/TabNavigation';
 import layout from '../../src/constants/layout';
@@ -17,8 +18,9 @@ const Tab = createBottomTabNavigator();
 
 export default function TabLayout() {
   const iconSize = 24;
+  const [searchQuery, setSearchQuery] = useState('');
   const themeContext = useContext(ThemeContext);
-  const theme: Theme | null = themeContext || {
+  const theme: Theme = themeContext || {
     name: 'dark',
     backgroundColor: '#000000',
     foregroundColor: '#FFFFFF',
@@ -27,8 +29,9 @@ export default function TabLayout() {
   };
 
   return (
-    <View style={{ flex: 1 }}>
-      <Tab.Navigator
+    <SearchContext.Provider value={{ searchQuery, setSearchQuery }}>
+      <View style={{ flex: 1 }}>
+        <Tab.Navigator
         initialRouteName="Cards"
         screenOptions={{
           tabBarShowLabel: false,
@@ -68,41 +71,16 @@ export default function TabLayout() {
           </View>
         )}
       </Tab.Screen>
-      <Tab.Screen
-        name="Decklists"
-        options={{
-          tabBarLabel: 'Decklists',
-          tabBarIcon: () => (
-            <Icon
-              name={'file-tray-full-outline'}
-              type="ionicon"
-              color={theme?.foregroundColor}
-              size={iconSize}
-            />
-          ),
-        }}>
-        {() => (
-          <View
-            style={{
-              flex: 1,
-              backgroundColor: theme?.backgroundColor,
-            }}>
-            <DecklistsScreen />
-          </View>
-        )}
-      </Tab.Screen>
+
       </Tab.Navigator>
       
       <SearchFooter 
-        onSearchChange={(text) => {
-          // TODO: Handle search
-          console.log('Search:', text);
-        }}
+        onSearchChange={setSearchQuery}
         onToggleSearchMode={() => {
           // TODO: Handle search mode toggle
-          console.log('Toggle search mode');
         }}
       />
-    </View>
+      </View>
+    </SearchContext.Provider>
   );
 }

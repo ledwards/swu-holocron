@@ -8,6 +8,7 @@ const styles = StyleSheet.create({
   cardListItem: {
     backgroundColor: '#000000',
     position: 'absolute',
+    overflow: 'hidden',
   },
   cardListItemExpanded: {
     overflow: 'hidden',

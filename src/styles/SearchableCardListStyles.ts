@@ -2,7 +2,7 @@ import {StyleSheet} from 'react-native';
 
 const styles = StyleSheet.create({
   separator: {
-    height: 2,
+    height: 3,
   },
   loading: {
     flex: 1,
