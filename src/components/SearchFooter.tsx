@@ -1,5 +1,5 @@
 import React, {useContext, useState, useEffect} from 'react';
-import {View, TextInput, StyleSheet, TouchableOpacity, Keyboard, Animated} from 'react-native';
+import {View, TextInput, StyleSheet, TouchableOpacity, Keyboard, Animated, Text} from 'react-native';
 import {BlurView} from 'expo-blur';
 import {Icon} from 'react-native-elements';
 import ThemeContext from '../contexts/ThemeContext';
@@ -9,11 +9,15 @@ import layout from '../constants/layout';
 interface SearchFooterProps {
   onSearchChange?: (text: string) => void;
   onToggleSearchMode?: () => void;
+  resultCount?: number;
+  searchTerm?: string;
 }
 
 const SearchFooter: React.FC<SearchFooterProps> = ({
   onSearchChange,
   onToggleSearchMode,
+  resultCount = 0,
+  searchTerm = '',
 }) => {
   const [searchText, setSearchText] = useState('');
   const [keyboardHeight] = useState(new Animated.Value(0));
@@ -80,6 +84,16 @@ const SearchFooter: React.FC<SearchFooterProps> = ({
         tint={theme.name === 'dark' ? 'dark' : 'light'}
       />
       <View style={styles.searchContainer}>
+        {searchTerm.length > 0 && (
+          <View style={styles.statusContainer}>
+            <Text style={[styles.statusText, { color: theme.foregroundColor }]}>
+              {resultCount === 0 
+                ? `No cards match "${searchTerm}"`
+                : `${resultCount} result${resultCount !== 1 ? 's' : ''} found for "${searchTerm}"`
+              }
+            </Text>
+          </View>
+        )}
         <View style={[styles.searchInputContainer, {borderColor: theme.dividerColor}]}>
           <TextInput
             style={[
@@ -147,6 +161,16 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 1000,
+  },
+  statusContainer: {
+    paddingHorizontal: 4,
+    paddingVertical: 8,
+    marginBottom: 8,
+  },
+  statusText: {
+    fontSize: 14,
+    textAlign: 'center',
+    opacity: 0.8,
   },
   searchInputContainer: {
     flexDirection: 'row',

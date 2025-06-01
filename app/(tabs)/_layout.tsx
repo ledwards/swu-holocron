@@ -19,6 +19,7 @@ const Tab = createBottomTabNavigator();
 export default function TabLayout() {
   const iconSize = 24;
   const [searchQuery, setSearchQuery] = useState('');
+  const [resultCount, setResultCount] = useState(0);
   const themeContext = useContext(ThemeContext);
   const theme: Theme = themeContext || {
     name: 'dark',
@@ -29,7 +30,7 @@ export default function TabLayout() {
   };
 
   return (
-    <SearchContext.Provider value={{ searchQuery, setSearchQuery }}>
+    <SearchContext.Provider value={{ searchQuery, setSearchQuery, resultCount, setResultCount }}>
       <View style={{ flex: 1 }}>
         <Tab.Navigator
         initialRouteName="Cards"
@@ -79,6 +80,8 @@ export default function TabLayout() {
         onToggleSearchMode={() => {
           // TODO: Handle search mode toggle
         }}
+        resultCount={resultCount}
+        searchTerm={searchQuery}
       />
       </View>
     </SearchContext.Provider>

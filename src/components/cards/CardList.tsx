@@ -8,6 +8,7 @@ import styles from '../../styles/SearchableCardListStyles';
 import layout from '../../constants/layout';
 import AllCardsContext from '../../contexts/AllCardsContext';
 import ThemeContext from '../../contexts/ThemeContext';
+import SearchContext from '../../contexts/SearchContext';
 import {Theme, ScrollToIndexFunction} from '../../types/interfaces';
 
 interface CardListProps {
@@ -32,6 +33,8 @@ const CardList: React.FC<CardListProps> = ({onCardPress, searchQuery = ''}) => {
 
   const allCardsContext = useContext(AllCardsContext);
   const allCards: Card[] = allCardsContext || [];
+  
+  const searchContext = useContext(SearchContext);
 
   // Helper function to check if a word is found as a whole word in text
   const isWholeWord = (text: string, word: string): boolean => {
@@ -48,13 +51,37 @@ const CardList: React.FC<CardListProps> = ({onCardPress, searchQuery = ''}) => {
     if (!search) return 0;
     
     // Check title (highest weight)
-    if (card.title.toLowerCase().includes(search)) {
-      score += card.title.toLowerCase() === search ? 1000 : 500; // Exact match gets higher score
+    const title = card.title.toLowerCase();
+    if (title.includes(search)) {
+      if (title === search) {
+        score += 1000; // Exact match
+      } else if (title.startsWith(search + ' ') || title.endsWith(' ' + search)) {
+        score += 800; // Whole word at start or end
+      } else if (isWholeWord(title, search)) {
+        score += 700; // Whole word anywhere
+      } else if (title.startsWith(search)) {
+        score += 600; // Starts with search
+      } else {
+        score += 300; // Contains search (like "vader" in "invaders")
+      }
     }
     
     // Check subtitle (high weight)
-    if (card.subtitle && card.subtitle.toLowerCase().includes(search)) {
-      score += card.subtitle.toLowerCase() === search ? 800 : 400;
+    if (card.subtitle) {
+      const subtitle = card.subtitle.toLowerCase();
+      if (subtitle.includes(search)) {
+        if (subtitle === search) {
+          score += 800; // Exact match
+        } else if (subtitle.startsWith(search + ' ') || subtitle.endsWith(' ' + search)) {
+          score += 600; // Whole word at start or end
+        } else if (isWholeWord(subtitle, search)) {
+          score += 500; // Whole word anywhere
+        } else if (subtitle.startsWith(search)) {
+          score += 400; // Starts with search
+        } else {
+          score += 200; // Contains search
+        }
+      }
     }
     
     return score;
@@ -80,7 +107,12 @@ const CardList: React.FC<CardListProps> = ({onCardPress, searchQuery = ''}) => {
       .map(item => item.card); // Extract just the cards
 
     setFilteredCards(cardsWithScores);
-  }, [searchQuery, allCards]);
+    
+    // Update result count in context
+    if (searchContext) {
+      searchContext.setResultCount(cardsWithScores.length);
+    }
+  }, [searchQuery, allCards, searchContext]);
 
   const scrollToIndex: ScrollToIndexFunction = (index: number): void => {
     if (flatListRef.current) {
@@ -112,7 +144,7 @@ const CardList: React.FC<CardListProps> = ({onCardPress, searchQuery = ''}) => {
         {searchQuery ? 'No Results Found' : 'Star Wars Unlimited Cards'}
       </Text>
       <Text style={[styles.defaultTextDescription, {color: theme.foregroundColor}]}>
-        {searchQuery ? `No cards match "${searchQuery}"` : 'Browse all Star Wars Unlimited cards'}
+        {searchQuery ? '' : 'Browse all Star Wars Unlimited cards'}
       </Text>
     </View>
   );

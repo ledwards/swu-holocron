@@ -3,6 +3,7 @@ import {View, useColorScheme, Appearance, StatusBar, ColorSchemeName, Text, Acti
 import {BlurView} from 'expo-blur';
 import {Stack} from 'expo-router';
 import {useFonts} from 'expo-font';
+import {Image} from 'expo-image';
 import * as SplashScreen from 'expo-splash-screen';
 import 'react-native-reanimated';
 
@@ -78,12 +79,25 @@ export default function RootLayout() {
     }
   };
 
-  if (!loaded) {
-    return null; // Let splash screen show while fonts load
-  }
-
-  if (!cardsLoaded) {
-    return null; // Let splash screen show while cards load
+  if (!loaded || !cardsLoaded) {
+    return (
+      <View style={{ 
+        flex: 1, 
+        justifyContent: 'center', 
+        alignItems: 'center',
+        backgroundColor: '#000000'
+      }}>
+        <Image
+          source={require('../assets/images/icon.png')}
+          style={{
+            width: '100%',
+            height: '100%',
+            resizeMode: 'contain'
+          }}
+        />
+        <StatusBar barStyle="light-content" />
+      </View>
+    );
   }
 
   return (

@@ -102,10 +102,10 @@ const CardListItem = (props: CardListItemProps) => {
   };
 
   const getAspectTextColor = (aspects: string[]): string => {
-    if (aspects.length === 0) return '#333333'; // Neutral - always black text
-
+    if (aspects.length === 0) return '#000000'; // Neutral - always black text
+    
     const aspectsLower = aspects.map(a => a.toLowerCase());
-
+    
     // Check for pure villainy or heroism
     if (aspects.length === 1) {
       if (aspectsLower[0] === 'villainy') {
@@ -115,7 +115,7 @@ const CardListItem = (props: CardListItemProps) => {
         return '#333333'; // Heroism - always black text
       }
     }
-
+    
     // For all other combinations, use theme-based text
     const isDarkTheme = theme.name === 'dark';
     return isDarkTheme ? '#FFFFFF' : '#333333';
@@ -126,7 +126,7 @@ const CardListItem = (props: CardListItemProps) => {
     let baseColor = '#C5C8CA';
 
     if (aspects.length === 0) {
-      return '#C5C8CA'; // Always medium grey for neutral
+      return '#808080'; // Always grey for neutral
     }
 
     const aspectsLower = aspects.map(a => a.toLowerCase());
@@ -183,7 +183,7 @@ const CardListItem = (props: CardListItemProps) => {
         case 'heroism':
           return '#E0E1C3'; // Always near white
         default:
-          baseColor = '#C5C8CA';
+          baseColor = '#808080';
       }
     }
 
@@ -242,6 +242,8 @@ const CardListItem = (props: CardListItemProps) => {
         return [{ translateY: -60 }]; // Move up for upgrades
       case 'event':
         return [{ translateY: -200 }]; // Move up for events
+      case 'leader':
+        return [{ translateX: 120 }, { translateY: 15 }, { scale: 2 }]; // Move right, down, and zoom 2x to show leftmost leader artwork
       case 'base':
         return [{ translateY: -25 }]; // Move up slightly for bases
       default:
@@ -533,7 +535,7 @@ const CardListItem = (props: CardListItemProps) => {
             {
               backgroundColor: blackBackground ? '#000000' : aspectBackgroundColor,
               borderWidth: 0,
-              borderRadius: 6,
+              borderRadius: currentlyExpanded ? 16 : 6,
             }
           ]}>
         <View style={[
@@ -610,7 +612,7 @@ const CardListItem = (props: CardListItemProps) => {
                 ? styles.cardListItemImageExpanded
                 : styles.cardListItemImageCollapsed,
               {
-                borderRadius: 20,
+                borderRadius: currentlyExpanded ? 32 : 20,
                 transform: getImageTransform(props.card.type)
               },
             ]}
