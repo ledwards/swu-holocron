@@ -77,30 +77,28 @@ const CardListItem = (props: CardListItemProps) => {
   };
 
   const getAspectTextColor = (aspects: string[]): string => {
+    if (aspects.length === 0) return '#333333'; // Neutral - black text
+    
     const aspectsLower = aspects.map(a => a.toLowerCase());
     const hasCunning = aspectsLower.includes('cunning');
-    const hasVigilance = aspectsLower.includes('vigilance');
-    const hasHeroism = aspectsLower.includes('heroism');
+    const hasVillainy = aspectsLower.includes('villainy');
     
-    // Neutral/no aspect cards need dark text
-    if (aspects.length === 0) {
-      return '#333333'; // Dark text for neutral/no aspect
+    // Villainy + cunning should have white text
+    if (hasCunning && hasVillainy) {
+      return '#FFFFFF'; // White text for villainy + cunning
     }
     
-    // Pure heroism needs dark text
-    if (aspects.length === 1 && hasHeroism) {
-      return '#333333'; // Dark text for pure heroism
+    // Solo heroism should have black text
+    if (aspects.length === 1 && aspectsLower.includes('heroism')) {
+      return '#333333'; // Black text for solo heroism
     }
     
-    // Specific combinations that need dark text
-    if (hasHeroism && hasCunning) {
-      return '#333333'; // Dark text for heroism + cunning
-    }
-    if (hasHeroism && hasVigilance) {
-      return '#333333'; // Dark text for heroism + vigilance
+    // All yellow should have black text, everything else white
+    if (hasCunning) {
+      return '#333333'; // Black text for cunning (yellow)
     }
     
-    return '#FFFFFF'; // White text for everything else
+    return '#FFFFFF'; // White text for all green, red, blue
   };
 
   const getAspectBackgroundColor = (aspects: string[]): string => {
@@ -126,7 +124,7 @@ const CardListItem = (props: CardListItemProps) => {
     
     // Aggression combinations
     if (hasAggression && hasVillainy) {
-      return '#941117'; // Aggression + Villainy
+      return '#B6001A'; // Aggression + Villainy
     }
     if (hasAggression && hasHeroism) {
       return '#BB5C4F'; // Aggression + Heroism
@@ -152,7 +150,7 @@ const CardListItem = (props: CardListItemProps) => {
     
     switch (primaryAspect) {
       case 'aggression':
-        return '#B6001A';
+        return '#941117';
       case 'command':
         return '#149742';
       case 'vigilance':
@@ -212,6 +210,17 @@ const CardListItem = (props: CardListItemProps) => {
         return [{ translateY: '-25%' }]; // Move up 25% for bases (was 20%, increased by 5%)
       default:
         return [{ translateY: '-5%' }]; // Move up 5% for other types (was no transform)
+    }
+  };
+
+  const getAspectBorderColor = (aspects: string[]): string => {
+    const textColor = getAspectTextColor(aspects);
+    
+    // Use dark grey for white text, light grey for black text
+    if (textColor === '#FFFFFF') {
+      return '#666666'; // Dark grey border for white text
+    } else {
+      return '#CCCCCC'; // Light grey border for black text
     }
   };
 
@@ -298,6 +307,7 @@ const CardListItem = (props: CardListItemProps) => {
 
   const aspectBackgroundColor = getAspectBackgroundColor(props.card.aspects);
   const textColor = getAspectTextColor(props.card.aspects);
+  const borderColor = getAspectBorderColor(props.card.aspects);
   const contentPosition = getContentPosition(props.card.type);
 
   return (
@@ -317,6 +327,8 @@ const CardListItem = (props: CardListItemProps) => {
             {
               backgroundColor: blackBackground ? '#000000' : aspectBackgroundColor,
               opacity: 0.8,
+              borderWidth: 0,
+              borderRadius: 6,
             }
           ]}>
         <View style={[
@@ -367,7 +379,7 @@ const CardListItem = (props: CardListItemProps) => {
               ]}
               numberOfLines={1}
             >
-              {`${props.card.type} • ${getRarityAbbreviation(props.card.rarity)} • ${props.card.set}${props.card.number}`}
+              {`${props.card.type} • ${props.card.set} ${props.card.number} • ${getRarityAbbreviation(props.card.rarity)}`}
             </Text>
           </Animated.View>
         </View>
