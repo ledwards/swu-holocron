@@ -41,6 +41,7 @@ const CardListItem = (props: CardListItemProps) => {
     minWidth: number;
     maxWidth: number;
     posY: number;
+    leaderState: 'collapsed' | 'front' | 'back';
   }
 
   const maxHeight = horizontal ? windowWidth / aspectRatio : windowWidth * aspectRatio;
@@ -59,6 +60,7 @@ const CardListItem = (props: CardListItemProps) => {
     minWidth: windowWidth * fillPercent,
     maxWidth: maxWidth,
     posY: 0,
+    leaderState: 'collapsed',
   });
 
   // Track the current expanded state for immediate contentPosition updates
@@ -189,6 +191,12 @@ const CardListItem = (props: CardListItemProps) => {
   };
 
   const getContentPosition = (cardType: string) => {
+    // Special handling for Chancellor Palpatine - both sides use same position
+    const isChancellorPalpatine = props.card.title === "Chancellor Palpatine" && props.card.subtitle === 'Playing Both Sides' || false;
+    if (isChancellorPalpatine) {
+      return { top: '35%', left: '-60%' };
+    }
+
     const type = cardType.toLowerCase();
 
     switch (type) {
@@ -213,6 +221,12 @@ const CardListItem = (props: CardListItemProps) => {
   const getImageTransform = (cardType: string) => {
     if (currentlyExpanded) return []; // No transform when expanded
 
+    // Special handling for Chancellor Palpatine - both sides use same transform
+    const isChancellorPalpatine = props.card.title === "Chancellor Palpatine" && props.card.subtitle === 'Playing Both Sides' || false;
+    if (isChancellorPalpatine) {
+      return [{ translateX: 120 }, { translateY: 15 }, { scale: 2 }];
+    }
+
     const type = cardType.toLowerCase();
 
     switch (type) {
@@ -228,10 +242,8 @@ const CardListItem = (props: CardListItemProps) => {
         return [{ translateY: -60 }]; // Move up for upgrades
       case 'event':
         return [{ translateY: -200 }]; // Move up for events
-      case 'leader':
-        return [{ translateX: 120 }, { translateY: 15 }, { scale: 2 }]; // Move right, down, and zoom 2x to show leftmost leader artwork
       case 'base':
-        return [{ translateY: -30 }]; // Move up slightly for bases
+        return [{ translateY: -25 }]; // Move up slightly for bases
       default:
         return [{ translateY: -15 }]; // Move up for other types
     }
@@ -276,34 +288,81 @@ const CardListItem = (props: CardListItemProps) => {
 
   const toggleExpanded = (): void => {
     Keyboard.dismiss();
-    const needsToExpand = !state.expanded;
-    const needsToFlip = false; // SWU cards don't flip like SWCCG
-    const needsToCollapse = state.expanded;
-    const newExpandedState = !needsToCollapse;
+
+    const isLeader = props.card.type.toLowerCase() === 'leader';
+
+    if (isLeader) {
+      handleLeaderToggle();
+    } else {
+      handleNormalCardToggle();
+    }
+
+    if (props.onPress) {
+      props.onPress(props.card);
+    }
+  };
+
+  const handleLeaderToggle = (): void => {
+    const { leaderState } = state;
+    let newLeaderState: 'collapsed' | 'front' | 'back';
+    let needsToExpand = false;
+    let needsToCollapse = false;
+    let needsToFlip = false;
+    let newExpandedState = false;
+    let newShowingBack = false;
+
+    switch (leaderState) {
+      case 'collapsed':
+        // collapsed → front expanded
+        newLeaderState = 'front';
+        needsToExpand = true;
+        newExpandedState = true;
+        newShowingBack = false;
+        break;
+      case 'front':
+        // front expanded → back expanded
+        newLeaderState = 'back';
+        needsToFlip = true;
+        newExpandedState = true;
+        newShowingBack = true;
+        break;
+      case 'back':
+        // back expanded → collapsed
+        newLeaderState = 'collapsed';
+        needsToCollapse = true;
+        newExpandedState = false;
+        newShowingBack = false;
+        break;
+    }
 
     // Instantly change expanded state to remove crop
     setCurrentlyExpanded(newExpandedState);
 
     // Handle background color timing
     if (needsToCollapse) {
-      // When collapsing, immediately remove black background
       setBlackBackground(false);
     }
-    // When expanding, we'll set black background at animation end
+    if (needsToExpand) {
+      setBlackBackground(true);
+    }
 
     setState({
       ...state,
-      showingBack: needsToFlip,
+      leaderState: newLeaderState,
+      showingBack: newShowingBack,
       expanded: newExpandedState,
     });
 
     const t = 300;
     const easing = Easing.elastic(0);
 
-    if (needsToExpand || needsToCollapse) {
+    // Determine if we need to resize (expand/collapse) or just flip
+    const needsResize = needsToExpand || needsToCollapse;
+
+    if (needsResize) {
+      // Animate size change
       Animated.sequence([
         Animated.parallel([
-
           Animated.timing(state.widthAnim, {
             toValue: needsToCollapse ? state.minWidth : state.maxWidth,
             duration: t,
@@ -311,7 +370,7 @@ const CardListItem = (props: CardListItemProps) => {
             easing: easing,
           }),
           Animated.timing(state.containerHeightAnim, {
-            toValue: needsToCollapse ? state.minHeight / 2 - 5 : state.maxHeight,
+            toValue: needsToCollapse ? state.minHeight / 2 - 5 : (windowWidth / aspectRatio),
             duration: t,
             useNativeDriver: false,
             easing: easing,
@@ -323,23 +382,135 @@ const CardListItem = (props: CardListItemProps) => {
             easing: easing,
           }),
         ]),
-      ])
-        .start(() => {
-          // Scroll after animation completes to avoid jitters
+      ]).start(() => {
+        props.scrollToIndex(props.index);
+      });
+    } else if (needsToFlip) {
+      // Flipping from front to back
+      const isChancellorPalpatine = props.card.title === "Chancellor Palpatine" && props.card.subtitle === 'Playing Both Sides' || false;
+
+      if (isChancellorPalpatine) {
+        // Chancellor Palpatine - both sides are horizontal, no resize needed
+        props.scrollToIndex(props.index);
+      } else {
+        // Normal leaders - animate to vertical card height for unit back
+        const backHeight = windowWidth * aspectRatio;
+        const backWidth = getLeaderBackWidth();
+        Animated.parallel([
+          Animated.timing(state.containerHeightAnim, {
+            toValue: backHeight,
+            duration: t,
+            useNativeDriver: false,
+            easing: easing,
+          }),
+          Animated.timing(state.widthAnim, {
+            toValue: backWidth,
+            duration: t,
+            useNativeDriver: false,
+            easing: easing,
+          }),
+        ]).start(() => {
           props.scrollToIndex(props.index);
-
-          // Set black background when expansion completes
-          if (needsToExpand) {
-            setBlackBackground(true);
-          }
         });
-    }
-
-    if (props.onPress) {
-      props.onPress(props.card);
+      }
     }
   };
 
+  const handleNormalCardToggle = (): void => {
+    const needsToExpand = !state.expanded;
+    const needsToCollapse = state.expanded;
+    const newExpandedState = !needsToCollapse;
+
+    // Instantly change expanded state to remove crop
+    setCurrentlyExpanded(newExpandedState);
+
+    // Handle background color timing
+    if (needsToCollapse) {
+      setBlackBackground(false);
+    }
+    if (needsToExpand) {
+      setBlackBackground(true);
+    }
+
+    setState({
+      ...state,
+      showingBack: false,
+      expanded: newExpandedState,
+    });
+
+    const t = 300;
+    const easing = Easing.elastic(0);
+
+    Animated.sequence([
+      Animated.parallel([
+        Animated.timing(state.widthAnim, {
+          toValue: needsToCollapse ? state.minWidth : state.maxWidth,
+          duration: t,
+          useNativeDriver: false,
+          easing: easing,
+        }),
+        Animated.timing(state.containerHeightAnim, {
+          toValue: needsToCollapse ? state.minHeight / 2 - 5 : state.maxHeight,
+          duration: t,
+          useNativeDriver: false,
+          easing: easing,
+        }),
+        Animated.timing(state.labelOpacityAnim, {
+          toValue: needsToCollapse ? 1.0 : 0.0,
+          duration: t,
+          useNativeDriver: true,
+          easing: easing,
+        }),
+      ]),
+    ]).start(() => {
+      props.scrollToIndex(props.index);
+    });
+  };
+
+  const getLeaderHeight = (): number => {
+    const { leaderState } = state;
+
+    if (leaderState === 'front') {
+      // Leader side is always horizontal
+      return windowWidth / aspectRatio;
+    } else if (leaderState === 'back') {
+      // Most leader backs are vertical (units), but some like Chancellor Palpatine are horizontal (bases)
+      const backIsHorizontal = props.card.subtitle?.toLowerCase().includes('chancellor') || false;
+      if (backIsHorizontal) {
+        return windowWidth / aspectRatio;
+      } else {
+        // Explicitly use full vertical card height - same as maxHeight for vertical cards
+        const verticalCardHeight = windowWidth * aspectRatio;
+        return verticalCardHeight;
+      }
+    }
+
+    return windowWidth * aspectRatio; // Default to vertical card height
+  };
+
+  const getLeaderBackWidth = (): number => {
+    // Use 100% of the list item container width
+    return windowWidth;
+  };
+
+  // Calculate if current side is horizontal based on what we're showing
+  const getCurrentSideHorizontal = (): boolean => {
+    if (props.card.type.toLowerCase() === 'leader') {
+      if (state.showingBack) {
+        // Most leader backs are vertical units, except special cases like Chancellor Palpatine
+        const isChancellorPalpatine = props.card.title === "Chancellor Palpatine" && props.card.subtitle === 'Playing Both Sides' || false;
+        return isChancellorPalpatine;
+      } else {
+        // Leader front side is always horizontal
+        return true;
+      }
+    } else {
+      // Normal cards use their type
+      return isHorizontalCard(props.card.type);
+    }
+  };
+
+  const currentSideHorizontal = getCurrentSideHorizontal();
   const aspectBackgroundColor = getAspectBackgroundColor(props.card.aspects);
   const textColor = getAspectTextColor(props.card.aspects);
   const borderColor = getAspectBorderColor(props.card.aspects);
@@ -423,7 +594,7 @@ const CardListItem = (props: CardListItemProps) => {
             styles.cardListItem,
             {
               width: state.widthAnim,
-              aspectRatio: horizontal ? 1.4 : 1/1.4,
+              aspectRatio: currentSideHorizontal ? 1.4 : 1/1.4,
             },
             !state.expanded
               ? styles.cardListItemExpanded
@@ -431,7 +602,7 @@ const CardListItem = (props: CardListItemProps) => {
           ]}>
           <Image
             source={{
-              uri: props.card.frontArt
+              uri: state.showingBack ? props.card.backArt : props.card.frontArt
             }}
             style={[
               styles.cardListItemImage,
