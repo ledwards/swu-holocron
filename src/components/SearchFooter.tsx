@@ -1,5 +1,5 @@
-import React, {useContext, useState} from 'react';
-import {View, TextInput, StyleSheet, TouchableOpacity} from 'react-native';
+import React, {useContext, useState, useEffect} from 'react';
+import {View, TextInput, StyleSheet, TouchableOpacity, Keyboard, Animated} from 'react-native';
 import {BlurView} from 'expo-blur';
 import {Icon} from 'react-native-elements';
 import ThemeContext from '../contexts/ThemeContext';
@@ -16,6 +16,7 @@ const SearchFooter: React.FC<SearchFooterProps> = ({
   onToggleSearchMode,
 }) => {
   const [searchText, setSearchText] = useState('');
+  const [keyboardHeight] = useState(new Animated.Value(0));
   const themeContext = useContext(ThemeContext);
   const theme: Theme = themeContext || {
     name: 'dark',
@@ -35,8 +36,39 @@ const SearchFooter: React.FC<SearchFooterProps> = ({
     onSearchChange?.('');
   };
 
+  useEffect(() => {
+    const keyboardWillShowListener = Keyboard.addListener(
+      'keyboardWillShow',
+      (event) => {
+        // Adjust keyboard height to provide equal margin above and below search box
+        const adjustedHeight = event.endCoordinates.height - layout.tabBarHeight() - 15;
+        Animated.timing(keyboardHeight, {
+          toValue: adjustedHeight,
+          duration: event.duration,
+          useNativeDriver: false,
+        }).start();
+      }
+    );
+
+    const keyboardWillHideListener = Keyboard.addListener(
+      'keyboardWillHide',
+      (event) => {
+        Animated.timing(keyboardHeight, {
+          toValue: 0,
+          duration: event.duration,
+          useNativeDriver: false,
+        }).start();
+      }
+    );
+
+    return () => {
+      keyboardWillShowListener.remove();
+      keyboardWillHideListener.remove();
+    };
+  }, [keyboardHeight]);
+
   return (
-    <View style={styles.footerContainer}>
+    <Animated.View style={[styles.footerContainer, { bottom: keyboardHeight }]}>
       <BlurView
         style={[
           styles.blurBackground,
@@ -61,6 +93,10 @@ const SearchFooter: React.FC<SearchFooterProps> = ({
             value={searchText}
             onChangeText={handleSearchChange}
             returnKeyType="search"
+            autoCorrect={false}
+            autoComplete="off"
+            spellCheck={false}
+            autoCapitalize="none"
           />
           {searchText.length > 0 ? (
             <TouchableOpacity onPress={clearSearch} style={styles.filterButton}>
@@ -85,7 +121,7 @@ const SearchFooter: React.FC<SearchFooterProps> = ({
           )}
         </View>
       </View>
-    </View>
+    </Animated.View>
   );
 };
 

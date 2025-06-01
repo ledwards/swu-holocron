@@ -139,7 +139,7 @@ const CardListItem = (props: CardListItemProps) => {
 
     // Command combinations
     if (hasCommand && hasVillainy) {
-      baseColor = '#082816'; // Command + Villainy
+      baseColor = '#1A5D2E'; // Command + Villainy
     } else if (hasCommand && hasHeroism) {
       baseColor = '#45B040'; // Command + Heroism
     }
@@ -147,17 +147,17 @@ const CardListItem = (props: CardListItemProps) => {
     else if (hasAggression && hasVillainy) {
       baseColor = '#B6001A'; // Aggression + Villainy
     } else if (hasAggression && hasHeroism) {
-      baseColor = '#BB5C4F'; // Aggression + Heroism
+      baseColor = '#D67A6B'; // Aggression + Heroism
     }
     // Cunning combinations
     else if (hasCunning && hasVillainy) {
-      baseColor = '#5B482E'; // Cunning + Villainy
+      baseColor = '#A69018'; // Cunning + Villainy
     } else if (hasCunning && hasHeroism) {
-      baseColor = '#E3D292'; // Cunning + Heroism
+      baseColor = '#FFF200'; // Cunning + Heroism
     }
     // Vigilance combinations
     else if (hasVigilance && hasVillainy) {
-      baseColor = '#0B2541'; // Vigilance + Villainy
+      baseColor = '#1E4A72'; // Vigilance + Villainy
     } else if (hasVigilance && hasHeroism) {
       baseColor = '#7BC7E6'; // Vigilance + Heroism
     } else {
@@ -174,7 +174,7 @@ const CardListItem = (props: CardListItemProps) => {
           baseColor = '#2285BB';
           break;
         case 'cunning':
-          baseColor = '#EFA827';
+          baseColor = '#FFB000';
           break;
         case 'villainy':
           return '#2A2A2A'; // Always dark grey
