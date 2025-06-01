@@ -76,33 +76,56 @@ const CardListItem = (props: CardListItemProps) => {
     translucentBackgroundColor: 'rgba(0,0,0,0.5)'
   };
 
+  const mixColorWithTheme = (color: string, isDarkTheme: boolean): string => {
+    // Convert hex to RGB
+    const hex = color.replace('#', '');
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+    
+    // Mix 30% with black (dark theme) or 50% with white (light theme)
+    if (isDarkTheme) {
+      const newR = Math.round(r * 0.7);
+      const newG = Math.round(g * 0.7);
+      const newB = Math.round(b * 0.7);
+      return '#' + ((newR << 16) | (newG << 8) | newB).toString(16).padStart(6, '0');
+    } else {
+      const newR = Math.round((r + 255) / 2);
+      const newG = Math.round((g + 255) / 2);
+      const newB = Math.round((b + 255) / 2);
+      return '#' + ((newR << 16) | (newG << 8) | newB).toString(16).padStart(6, '0');
+    }
+    
+
+  };
+
   const getAspectTextColor = (aspects: string[]): string => {
-    if (aspects.length === 0) return '#333333'; // Neutral - black text
+    if (aspects.length === 0) return '#333333'; // Neutral - always black text
     
     const aspectsLower = aspects.map(a => a.toLowerCase());
-    const hasCunning = aspectsLower.includes('cunning');
-    const hasVillainy = aspectsLower.includes('villainy');
     
-    // Villainy + cunning should have white text
-    if (hasCunning && hasVillainy) {
-      return '#FFFFFF'; // White text for villainy + cunning
+    // Check for pure villainy or heroism
+    if (aspects.length === 1) {
+      if (aspectsLower[0] === 'villainy') {
+        return '#FFFFFF'; // Villainy - always white text
+      }
+      if (aspectsLower[0] === 'heroism') {
+        return '#333333'; // Heroism - always black text
+      }
     }
     
-    // Solo heroism should have black text
-    if (aspects.length === 1 && aspectsLower.includes('heroism')) {
-      return '#333333'; // Black text for solo heroism
-    }
-    
-    // All yellow should have black text, everything else white
-    if (hasCunning) {
-      return '#333333'; // Black text for cunning (yellow)
-    }
-    
-    return '#FFFFFF'; // White text for all green, red, blue
+    // For all other combinations, use theme-based text
+    const isDarkTheme = theme.name === 'dark';
+    return isDarkTheme ? '#FFFFFF' : '#333333';
   };
 
   const getAspectBackgroundColor = (aspects: string[]): string => {
-    if (aspects.length === 0) return '#C5C8CA';
+    const isDarkTheme = theme.name === 'dark';
+    let baseColor = '#C5C8CA';
+    
+    if (aspects.length === 0) {
+      return '#C5C8CA'; // Always medium grey for neutral
+    }
     
     const aspectsLower = aspects.map(a => a.toLowerCase());
     
@@ -116,54 +139,53 @@ const CardListItem = (props: CardListItemProps) => {
     
     // Command combinations
     if (hasCommand && hasVillainy) {
-      return '#082816'; // Command + Villainy
+      baseColor = '#082816'; // Command + Villainy
+    } else if (hasCommand && hasHeroism) {
+      baseColor = '#45B040'; // Command + Heroism
     }
-    if (hasCommand && hasHeroism) {
-      return '#45B040'; // Command + Heroism
-    }
-    
     // Aggression combinations
-    if (hasAggression && hasVillainy) {
-      return '#B6001A'; // Aggression + Villainy
+    else if (hasAggression && hasVillainy) {
+      baseColor = '#B6001A'; // Aggression + Villainy
+    } else if (hasAggression && hasHeroism) {
+      baseColor = '#BB5C4F'; // Aggression + Heroism
     }
-    if (hasAggression && hasHeroism) {
-      return '#BB5C4F'; // Aggression + Heroism
-    }
-    
     // Cunning combinations
-    if (hasCunning && hasVillainy) {
-      return '#5B482E'; // Cunning + Villainy
+    else if (hasCunning && hasVillainy) {
+      baseColor = '#5B482E'; // Cunning + Villainy
+    } else if (hasCunning && hasHeroism) {
+      baseColor = '#E3D292'; // Cunning + Heroism
     }
-    if (hasCunning && hasHeroism) {
-      return '#E3D292'; // Cunning + Heroism
-    }
-    
     // Vigilance combinations
-    if (hasVigilance && hasVillainy) {
-      return '#0B2541'; // Vigilance + Villainy
-    }
-    if (hasVigilance && hasHeroism) {
-      return '#7BC7E6'; // Vigilance + Heroism
+    else if (hasVigilance && hasVillainy) {
+      baseColor = '#0B2541'; // Vigilance + Villainy
+    } else if (hasVigilance && hasHeroism) {
+      baseColor = '#7BC7E6'; // Vigilance + Heroism
+    } else {
+      const primaryAspect = aspectsLower.find(a => !['villainy', 'heroism'].includes(a)) || aspectsLower[0];
+      
+      switch (primaryAspect) {
+        case 'aggression':
+          baseColor = '#941117';
+          break;
+        case 'command':
+          baseColor = '#149742';
+          break;
+        case 'vigilance':
+          baseColor = '#2285BB';
+          break;
+        case 'cunning':
+          baseColor = '#EFA827';
+          break;
+        case 'villainy':
+          return '#2A2A2A'; // Always dark grey
+        case 'heroism':
+          return '#E0E1C3'; // Always near white
+        default:
+          baseColor = '#C5C8CA';
+      }
     }
     
-    const primaryAspect = aspectsLower.find(a => !['villainy', 'heroism'].includes(a)) || aspectsLower[0];
-    
-    switch (primaryAspect) {
-      case 'aggression':
-        return '#941117';
-      case 'command':
-        return '#149742';
-      case 'vigilance':
-        return '#2285BB';
-      case 'cunning':
-        return '#EFA827';
-      case 'villainy':
-        return '#2A2A2A';
-      case 'heroism':
-        return '#E0E1C3';
-      default:
-        return '#C5C8CA';
-    }
+    return mixColorWithTheme(baseColor, isDarkTheme);
   };
 
   const getContentPosition = (cardType: string) => {
@@ -326,7 +348,6 @@ const CardListItem = (props: CardListItemProps) => {
             styles.cardListItemContainer,
             {
               backgroundColor: blackBackground ? '#000000' : aspectBackgroundColor,
-              opacity: 0.8,
               borderWidth: 0,
               borderRadius: 6,
             }

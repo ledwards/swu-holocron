@@ -1,7 +1,7 @@
 import * as FileSystem from 'expo-file-system';
 import Card from '../models/Card';
 
-const GITHUB_BASE_URL = 'https://raw.githubusercontent.com/erlloyd/star-wars-unlimited-json/main/sets';
+const GITHUB_BASE_URL = 'https://raw.githubusercontent.com/ledwards/star-wars-unlimited-json/main/sets';
 const DATA_DIR = `${FileSystem.documentDirectory}data/`;
 const CARDS_FILE = `${DATA_DIR}cards.json`;
 
