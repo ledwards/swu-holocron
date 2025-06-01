@@ -1,5 +1,6 @@
 import React, {useContext} from 'react';
-import {View, Text, StyleSheet} from 'react-native';
+import {View, StyleSheet, ActivityIndicator} from 'react-native';
+import {WebView} from 'react-native-webview';
 import ThemeContext from '../../contexts/ThemeContext';
 import {Theme} from '../../types/interfaces';
 import layout from '../../constants/layout';
@@ -17,15 +18,19 @@ const DecklistsScreen = () => {
   return (
     <View style={[styles.container, {backgroundColor: theme.backgroundColor}]}>
       <View style={[styles.header, {height: layout.nativeHeaderHeight()}]} />
-      <View style={styles.content}>
-        <Text style={[styles.title, {color: theme.foregroundColor}]}>
-          Star Wars Unlimited Decklists
-        </Text>
-        <Text style={[styles.subtitle, {color: theme.foregroundColor}]}>
-          Browse and manage your Star Wars Unlimited decks
-        </Text>
+      <View style={styles.webViewContainer}>
+        <WebView
+          source={{ uri: 'https://swu-competitivehub.com' }}
+          startInLoadingState={true}
+          renderLoading={() => (
+            <View style={[styles.loadingContainer, {backgroundColor: theme.backgroundColor}]}>
+              <ActivityIndicator size="large" color={theme.foregroundColor} />
+            </View>
+          )}
+          style={styles.webView}
+        />
       </View>
-      <View style={[styles.footer, {height: layout.footerHeight(layout.tabBarHeight(), undefined) + 40}]} />
+      <View style={[styles.footer, {height: layout.footerHeight(layout.tabBarHeight(), undefined)}]} />
     </View>
   );
 };
@@ -37,22 +42,20 @@ const styles = StyleSheet.create({
   header: {
     width: '100%',
   },
-  content: {
+  webViewContainer: {
     flex: 1,
-    alignItems: 'center',
+  },
+  webView: {
+    flex: 1,
+  },
+  loadingContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     justifyContent: 'center',
-    padding: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  subtitle: {
-    fontSize: 16,
-    textAlign: 'center',
-    opacity: 0.8,
+    alignItems: 'center',
   },
   footer: {
     width: '100%',

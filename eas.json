@@ -8,29 +8,31 @@
       "developmentClient": true,
       "distribution": "internal",
       "ios": {
-        "resourceClass": "m1-medium"
+        "resourceClass": "m-medium"
       }
     },
     "preview": {
       "distribution": "internal",
       "ios": {
-        "resourceClass": "m1-medium",
+        "resourceClass": "m-medium",
         "simulator": true
       }
     },
     "production": {
       "ios": {
-        "resourceClass": "m1-medium",
-        "autoIncrement": true
+        "resourceClass": "m-medium",
+        "autoIncrement": true,
+        "credentialsSource": "remote"
       }
     },
     "testflight": {
       "extends": "production",
       "distribution": "store",
       "ios": {
-        "resourceClass": "m1-medium",
+        "resourceClass": "m-medium",
         "autoIncrement": true,
-        "buildConfiguration": "Release"
+        "buildConfiguration": "Release",
+        "credentialsSource": "remote"
       }
     }
   },

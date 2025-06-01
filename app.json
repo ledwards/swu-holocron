@@ -15,8 +15,6 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.swuholocron.app",
-      "buildNumber": "2",
       "infoPlist": {
         "CFBundleDisplayName": "SWU Holocron"
       }
@@ -58,9 +56,7 @@
       },
       "router": {}
     },
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "1.0.0",
     "owner": "terronk"
   }
 }
