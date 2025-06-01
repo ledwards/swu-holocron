@@ -147,22 +147,33 @@ const SearchableCardList: React.FC<SearchableCardListProps> = (props) => {
   };
 
   /**
-   * Process a simple title search filter
+   * Process a comprehensive text search filter
    */
   const searchFilterFunction = (text: string): void => {
+    if (!text.trim()) {
+      setData([]);
+      return;
+    }
+
     const newData = allCards.filter(card => {
-      const textData = text;
-      const itemData = `${card.title} ${card.sortTitle} ${card.abbr || ' '}`
-        .toLowerCase()
-        .trim();
+      const searchText = text.toLowerCase().trim();
+      
+      // Create searchable content from all relevant card fields
+      const searchableContent = [
+        card.title,
+        card.subtitle || '',
+        card.text || '',
+        card.type,
+        card.rarity,
+        card.set,
+        card.artist || '',
+        ...(card.traits || []),
+        ...(card.aspects || []),
+        ...(card.arenas || [])
+      ].join(' ').toLowerCase();
 
-      // Allow for unordered word matches
-      const textDataList = textData.split(' ');
-      const matches = textDataList.filter(
-        (w: string) => itemData.indexOf(w) > -1,
-      );
-
-      return matches.length === textDataList.length;
+      // Check if search text is contained in any of the card fields
+      return searchableContent.includes(searchText);
     });
 
     setData(newData);

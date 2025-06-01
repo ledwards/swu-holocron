@@ -1,12 +1,14 @@
 import React, {useContext} from 'react';
 import {View, StyleSheet} from 'react-native';
 import ThemeContext from '../../contexts/ThemeContext';
+import SearchContext from '../../contexts/SearchContext';
 import {Theme} from '../../types/interfaces';
 import CardList from './CardList';
 import Card from '../../models/Card';
 
 const CardsScreen = () => {
   const themeContext = useContext(ThemeContext);
+  const searchContext = useContext(SearchContext);
   const theme: Theme = themeContext || {
     name: 'dark',
     backgroundColor: '#000000',
@@ -16,13 +18,13 @@ const CardsScreen = () => {
   };
 
   const handleCardPress = (card: Card) => {
-    console.log('Card pressed:', card.displayTitle);
+    console.log('Card pressed:', card.title);
     // TODO: Navigate to card detail view
   };
 
   return (
     <View style={[styles.container, {backgroundColor: theme.backgroundColor}]}>
-      <CardList onCardPress={handleCardPress} />
+      <CardList onCardPress={handleCardPress} searchQuery={searchContext.searchQuery} />
     </View>
   );
 };
