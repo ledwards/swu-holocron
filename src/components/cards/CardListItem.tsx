@@ -63,6 +63,8 @@ const CardListItem = (props: CardListItemProps) => {
 
   // Track the current expanded state for immediate contentPosition updates
   const [currentlyExpanded, setCurrentlyExpanded] = useState(false);
+  // Track when background should be black (delayed for expansion)
+  const [blackBackground, setBlackBackground] = useState(false);
 
 
   // Use context to get theme if not provided as prop
@@ -74,27 +76,95 @@ const CardListItem = (props: CardListItemProps) => {
     translucentBackgroundColor: 'rgba(0,0,0,0.5)'
   };
 
+  const getAspectTextColor = (aspects: string[]): string => {
+    const aspectsLower = aspects.map(a => a.toLowerCase());
+    const hasCunning = aspectsLower.includes('cunning');
+    const hasVigilance = aspectsLower.includes('vigilance');
+    const hasHeroism = aspectsLower.includes('heroism');
+    
+    // Neutral/no aspect cards need dark text
+    if (aspects.length === 0) {
+      return '#333333'; // Dark text for neutral/no aspect
+    }
+    
+    // Pure heroism needs dark text
+    if (aspects.length === 1 && hasHeroism) {
+      return '#333333'; // Dark text for pure heroism
+    }
+    
+    // Specific combinations that need dark text
+    if (hasHeroism && hasCunning) {
+      return '#333333'; // Dark text for heroism + cunning
+    }
+    if (hasHeroism && hasVigilance) {
+      return '#333333'; // Dark text for heroism + vigilance
+    }
+    
+    return '#FFFFFF'; // White text for everything else
+  };
+
   const getAspectBackgroundColor = (aspects: string[]): string => {
-    if (aspects.length === 0) return '#808080';
+    if (aspects.length === 0) return '#C5C8CA';
     
     const aspectsLower = aspects.map(a => a.toLowerCase());
+    
+    // Check for specific combinations
+    const hasVigilance = aspectsLower.includes('vigilance');
+    const hasCommand = aspectsLower.includes('command');
+    const hasAggression = aspectsLower.includes('aggression');
+    const hasCunning = aspectsLower.includes('cunning');
+    const hasVillainy = aspectsLower.includes('villainy');
+    const hasHeroism = aspectsLower.includes('heroism');
+    
+    // Command combinations
+    if (hasCommand && hasVillainy) {
+      return '#082816'; // Command + Villainy
+    }
+    if (hasCommand && hasHeroism) {
+      return '#45B040'; // Command + Heroism
+    }
+    
+    // Aggression combinations
+    if (hasAggression && hasVillainy) {
+      return '#941117'; // Aggression + Villainy
+    }
+    if (hasAggression && hasHeroism) {
+      return '#BB5C4F'; // Aggression + Heroism
+    }
+    
+    // Cunning combinations
+    if (hasCunning && hasVillainy) {
+      return '#5B482E'; // Cunning + Villainy
+    }
+    if (hasCunning && hasHeroism) {
+      return '#E3D292'; // Cunning + Heroism
+    }
+    
+    // Vigilance combinations
+    if (hasVigilance && hasVillainy) {
+      return '#0B2541'; // Vigilance + Villainy
+    }
+    if (hasVigilance && hasHeroism) {
+      return '#7BC7E6'; // Vigilance + Heroism
+    }
+    
     const primaryAspect = aspectsLower.find(a => !['villainy', 'heroism'].includes(a)) || aspectsLower[0];
     
     switch (primaryAspect) {
       case 'aggression':
-        return '#D25A56';
+        return '#B6001A';
       case 'command':
-        return '#2B4C36';
+        return '#149742';
       case 'vigilance':
-        return '#2C3E5C';
+        return '#2285BB';
       case 'cunning':
-        return '#E6C547';
+        return '#EFA827';
       case 'villainy':
-        return '#1A1A1A';
+        return '#2A2A2A';
       case 'heroism':
-        return '#D8D8D8';
+        return '#E0E1C3';
       default:
-        return '#4A4A4A';
+        return '#C5C8CA';
     }
   };
 
@@ -169,6 +239,14 @@ const CardListItem = (props: CardListItemProps) => {
 
     // Instantly change expanded state to remove crop
     setCurrentlyExpanded(newExpandedState);
+    
+    // Handle background color timing
+    if (needsToCollapse) {
+      // When collapsing, immediately remove black background
+      setBlackBackground(false);
+    }
+    // When expanding, we'll set black background at animation end
+    
     setState({
       ...state,
       showingBack: needsToFlip,
@@ -205,6 +283,11 @@ const CardListItem = (props: CardListItemProps) => {
         .start(() => {
           // Scroll after animation completes to avoid jitters
           props.scrollToIndex(props.index);
+          
+          // Set black background when expansion completes
+          if (needsToExpand) {
+            setBlackBackground(true);
+          }
         });
     }
 
@@ -214,7 +297,7 @@ const CardListItem = (props: CardListItemProps) => {
   };
 
   const aspectBackgroundColor = getAspectBackgroundColor(props.card.aspects);
-  const textColor = aspectBackgroundColor === '#D8D8D8' ? '#000000' : '#FFFFFF';
+  const textColor = getAspectTextColor(props.card.aspects);
   const contentPosition = getContentPosition(props.card.type);
 
   return (
@@ -232,7 +315,7 @@ const CardListItem = (props: CardListItemProps) => {
           style={[
             styles.cardListItemContainer,
             {
-              backgroundColor: state.expanded ? '#000000' : aspectBackgroundColor,
+              backgroundColor: blackBackground ? '#000000' : aspectBackgroundColor,
               opacity: 0.8,
             }
           ]}>
@@ -257,6 +340,9 @@ const CardListItem = (props: CardListItemProps) => {
               ]} 
               numberOfLines={1}
             >
+              {props.card.unique && (
+                <Text style={{ marginRight: 6 }}>◈ </Text>
+              )}
               {props.card.title}
             </Text>
             <Text 
