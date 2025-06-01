@@ -3,7 +3,6 @@ import {View, StyleSheet, ActivityIndicator} from 'react-native';
 import {WebView} from 'react-native-webview';
 import ThemeContext from '../../contexts/ThemeContext';
 import {Theme} from '../../types/interfaces';
-import layout from '../../constants/layout';
 
 const DecklistsScreen = () => {
   const themeContext = useContext(ThemeContext);
@@ -16,33 +15,26 @@ const DecklistsScreen = () => {
   };
 
   return (
-    <View style={[styles.container, {backgroundColor: theme.backgroundColor}]}>
-      <View style={[styles.header, {height: layout.nativeHeaderHeight()}]} />
-      <View style={styles.webViewContainer}>
-        <WebView
-          source={{ uri: 'https://swu-competitivehub.com' }}
-          startInLoadingState={true}
-          renderLoading={() => (
-            <View style={[styles.loadingContainer, {backgroundColor: theme.backgroundColor}]}>
-              <ActivityIndicator size="large" color={theme.foregroundColor} />
-            </View>
-          )}
-          style={styles.webView}
-        />
-      </View>
-      <View style={[styles.footer, {height: layout.footerHeight(layout.tabBarHeight(), undefined)}]} />
+    <View style={styles.container}>
+      <WebView
+        source={{ uri: 'https://swudb.com/decks/' }}
+        startInLoadingState={true}
+        renderLoading={() => (
+          <View style={[styles.loadingContainer, {backgroundColor: theme.backgroundColor}]}>
+            <ActivityIndicator size="large" color={theme.foregroundColor} />
+          </View>
+        )}
+        style={styles.webView}
+        contentInsetAdjustmentBehavior="never"
+        automaticallyAdjustContentInsets={false}
+        contentInset={{top: 0, left: 0, bottom: 0, right: 0}}
+      />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
-  header: {
-    width: '100%',
-  },
-  webViewContainer: {
     flex: 1,
   },
   webView: {
@@ -56,9 +48,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  footer: {
-    width: '100%',
   },
 });
 

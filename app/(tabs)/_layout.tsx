@@ -2,9 +2,10 @@ import React, {useContext, useState} from 'react';
 import {View} from 'react-native';
 import {Icon} from 'react-native-elements';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
-
+import {BlurView} from 'expo-blur';
 
 import CardsScreen from '../../src/components/cards/CardsScreen';
+import DecklistsScreen from '../../src/components/decklists/DecklistsScreen';
 
 import SearchFooter from '../../src/components/SearchFooter';
 import SearchContext from '../../src/contexts/SearchContext';
@@ -73,7 +74,75 @@ export default function TabLayout() {
         )}
       </Tab.Screen>
 
+      <Tab.Screen
+        name="Decklists"
+        options={{
+          tabBarLabel: 'Decklists',
+          tabBarIcon: () => (
+            <Icon
+              name={'file-tray-full-outline'}
+              type="ionicon"
+              color={theme?.foregroundColor}
+              size={iconSize}
+            />
+          ),
+        }}>
+        {() => (
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: theme?.backgroundColor,
+            }}>
+            <DecklistsScreen />
+          </View>
+        )}
+      </Tab.Screen>
+
       </Tab.Navigator>
+      
+      {/* Blur layer for tab bar - visible on all screens */}
+      <View style={{
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: layout.tabBarHeight() + layout.nativeFooterHeight(),
+        pointerEvents: 'none',
+      }}>
+        <BlurView
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: layout.tabBarHeight() + layout.nativeFooterHeight(),
+          }}
+          intensity={50}
+          tint={theme.name === 'dark' ? 'dark' : 'light'}
+        />
+      </View>
+      
+      {/* Top blur layer for header - visible on all screens */}
+      <View style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: layout.nativeHeaderHeight(),
+        pointerEvents: 'none',
+      }}>
+        <BlurView
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: layout.nativeHeaderHeight(),
+          }}
+          intensity={50}
+          tint={theme.name === 'dark' ? 'dark' : 'light'}
+        />
+      </View>
       
       <SearchFooter 
         onSearchChange={setSearchQuery}
