@@ -1,8 +1,8 @@
-import React, {useState, useEffect, useContext, useRef} from 'react';
+import React, {useState, useEffect, useContext, useRef, JSX} from 'react';
 import {View, ActivityIndicator, Text, Animated, FlatList} from 'react-native';
 
 import CardListItem  from './CardListItem';
-import CardSearchFooter from './CardSearchFooter';
+
 import CardPresenter from '../../presenters/CardPresenter';
 import FilterQuerySet from '../../models/FilterQuerySet';
 import Card from '../../models/Card';
@@ -270,7 +270,7 @@ const SearchableCardList: React.FC<SearchableCardListProps> = (props) => {
     return (
       <CardListItem
         theme={theme}
-        item={new CardPresenter(item)}
+        card={item}
         index={index}
         scrollToIndex={scrollToIndex}
       />
@@ -321,18 +321,6 @@ const SearchableCardList: React.FC<SearchableCardListProps> = (props) => {
         maxToRenderPerBatch={10} // Reduce number in each render batch
         updateCellsBatchingPeriod={100} // Increase time between renders
         windowSize={10} // Reduce the window size
-      />
-      <CardSearchFooter
-        query={query}
-        filterQuerySet={filterQuerySet}
-        nativeFooterHeight={layout.nativeFooterHeight()}
-        searchBarHeight={layout.searchBarHeight()}
-        tabBarHeight={layout.tabBarHeight()}
-        searchMode={currentSearchMode()}
-        allCards={allCards}
-        data={data}
-        searchCallback={searchRouter}
-        toggleSearchMode={toggleSearchMode}
       />
     </>
   );

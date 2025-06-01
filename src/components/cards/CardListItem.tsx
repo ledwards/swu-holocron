@@ -220,18 +220,18 @@ const CardListItem = (props: CardListItemProps) => {
         const isUnique = props.card.unique;
         
         if (isUnique) {
-          return [{ translateY: '-20%' }]; // Move up 20% for unique units (was 15%, increased by 5%)
+          return [{ translateY: -60 }]; // Move up for unique units
         } else {
-          return [{ translateY: '-20%' }]; // Move up 20% for non-unique units (was 15%, increased by 5%)
+          return [{ translateY: -60 }]; // Move up for non-unique units
         }
       case 'upgrade':
-        return [{ translateY: '-20%' }]; // Move up 20% for upgrades (was 15%, increased by 5%)
+        return [{ translateY: -60 }]; // Move up for upgrades
       case 'event':
-        return [{ translateY: '-65%' }]; // Move up 65% for events (was 60%, increased by 5%)
+        return [{ translateY: -200 }]; // Move up for events
       case 'base':
-        return [{ translateY: '-25%' }]; // Move up 25% for bases (was 20%, increased by 5%)
+        return [{ translateY: -75 }]; // Move up for bases
       default:
-        return [{ translateY: '-5%' }]; // Move up 5% for other types (was no transform)
+        return [{ translateY: -15 }]; // Move up for other types
     }
   };
 

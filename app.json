@@ -1,16 +1,22 @@
 {
   "expo": {
-    "name": "ReactNativeApp",
-    "slug": "ReactNativeApp",
+    "name": "SWU Holocron",
+    "slug": "swu-holocron",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "reactnativeapp",
+    "scheme": "swu-holocron",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.swuholocron.app"
+      "bundleIdentifier": "com.swuholocron.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app uses the camera to scan QR codes for card lookup.",
+        "NSPhotoLibraryUsageDescription": "This app accesses your photo library to save card images.",
+        "CFBundleDisplayName": "SWU Holocron"
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -45,14 +51,13 @@
     },
     "extra": {
       "eas": {
-        "projectId": "swu-holocron-app"
-      }
+        "projectId": "4a1fb023-8527-40b0-9ff7-4f75a6907b02"
+      },
+      "router": {}
     },
     "runtimeVersion": {
       "policy": "appVersion"
     },
-    "updates": {
-      "url": "https://u.expo.dev/swu-holocron-app"
-    }
+    "owner": "terronk"
   }
 }
