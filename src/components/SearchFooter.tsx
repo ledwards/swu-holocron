@@ -11,6 +11,10 @@ interface SearchFooterProps {
   onToggleSearchMode?: () => void;
   resultCount?: number;
   searchTerm?: string;
+  activeTab?: string;
+  currentResult?: number;
+  onNavigateNext?: () => void;
+  onNavigatePrev?: () => void;
 }
 
 const SearchFooter: React.FC<SearchFooterProps> = ({
@@ -18,6 +22,10 @@ const SearchFooter: React.FC<SearchFooterProps> = ({
   onToggleSearchMode,
   resultCount = 0,
   searchTerm = '',
+  activeTab = 'Cards',
+  currentResult = 0,
+  onNavigateNext,
+  onNavigatePrev,
 }) => {
   const [searchText, setSearchText] = useState('');
   const [keyboardHeight] = useState(new Animated.Value(0));
@@ -77,7 +85,7 @@ const SearchFooter: React.FC<SearchFooterProps> = ({
         style={[
           styles.blurBackground,
           {
-            height: layout.nativeFooterHeight() + layout.tabBarHeight() + layout.searchBarHeight() + 40,
+            height: layout.nativeFooterHeight() + layout.tabBarHeight() + layout.searchBarHeight() + (searchTerm.length > 0 ? 60 : 30),
           },
         ]}
         intensity={50}
@@ -88,7 +96,7 @@ const SearchFooter: React.FC<SearchFooterProps> = ({
           <View style={styles.statusContainer}>
             <Text style={[styles.statusText, { color: theme.foregroundColor }]}>
               {resultCount === 0 
-                ? `No cards match "${searchTerm}"`
+                ? activeTab === 'RulesTab' ? `No results found for "${searchTerm}"` : `No cards match "${searchTerm}"`
                 : `${resultCount} result${resultCount !== 1 ? 's' : ''} found for "${searchTerm}"`
               }
             </Text>
@@ -102,7 +110,7 @@ const SearchFooter: React.FC<SearchFooterProps> = ({
                 color: theme.foregroundColor,
               },
             ]}
-            placeholder="Search cards..."
+            placeholder={activeTab === 'RulesTab' ? "Search rules..." : "Search cards..."}
             placeholderTextColor={theme.foregroundColor + '80'}
             value={searchText}
             onChangeText={handleSearchChange}
@@ -112,26 +120,40 @@ const SearchFooter: React.FC<SearchFooterProps> = ({
             spellCheck={false}
             autoCapitalize="none"
           />
-          {searchText.length > 0 ? (
-            <TouchableOpacity onPress={clearSearch} style={styles.filterButton}>
-              <Icon
-                name="close"
-                type="ionicon"
-                size={20}
-                color={theme.foregroundColor}
-              />
-            </TouchableOpacity>
-          ) : (
-            onToggleSearchMode && (
-              <TouchableOpacity onPress={onToggleSearchMode} style={styles.filterButton}>
+          {searchText.length > 0 && (
+            <View style={styles.searchActions}>
+              {activeTab === 'RulesTab' && resultCount > 0 && onNavigateNext && onNavigatePrev && (
+                <>
+                  <Text style={[styles.searchResultsText, { color: theme.foregroundColor }]}>
+                    {currentResult}/{resultCount}
+                  </Text>
+                  <TouchableOpacity onPress={onNavigatePrev} style={styles.searchNavButton}>
+                    <Icon
+                      name="chevron-up"
+                      type="ionicon"
+                      size={18}
+                      color={theme.foregroundColor}
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={onNavigateNext} style={styles.searchNavButton}>
+                    <Icon
+                      name="chevron-down"
+                      type="ionicon"
+                      size={18}
+                      color={theme.foregroundColor}
+                    />
+                  </TouchableOpacity>
+                </>
+              )}
+              <TouchableOpacity onPress={clearSearch} style={styles.filterButton}>
                 <Icon
-                  name="options-outline"
+                  name="close"
                   type="ionicon"
                   size={20}
                   color={theme.foregroundColor}
                 />
               </TouchableOpacity>
-            )
+            </View>
           )}
         </View>
       </View>
@@ -164,8 +186,8 @@ const styles = StyleSheet.create({
   },
   statusContainer: {
     paddingHorizontal: 4,
-    paddingVertical: 8,
-    marginBottom: 8,
+    paddingVertical: 4,
+    marginBottom: 4,
   },
   statusText: {
     fontSize: 14,
@@ -190,6 +212,18 @@ const styles = StyleSheet.create({
   },
   filterButton: {
     marginLeft: 8,
+    padding: 4,
+  },
+  searchActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  searchResultsText: {
+    fontSize: 14,
+    marginRight: 4,
+  },
+  searchNavButton: {
     padding: 4,
   },
 });

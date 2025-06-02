@@ -245,7 +245,7 @@ const CardListItem = (props: CardListItemProps) => {
       case 'leader':
         return [{ translateX: 120 }, { translateY: 15 }, { scale: 2 }]; // Move right, down, and zoom 2x to show leftmost leader artwork
       case 'base':
-        return [{ translateY: -25 }]; // Move up slightly for bases
+        return [{ translateY: -33 }]; // Move up slightly for bases
       default:
         return [{ translateY: -15 }]; // Move up for other types
     }

@@ -5,6 +5,10 @@ interface SearchContextType {
   setSearchQuery: (query: string) => void;
   resultCount: number;
   setResultCount: (count: number) => void;
+  currentSearchResult?: number;
+  setCurrentSearchResult?: (current: number) => void;
+  setOnNavigateNext?: (fn: (() => void) | undefined) => void;
+  setOnNavigatePrev?: (fn: (() => void) | undefined) => void;
 }
 
 const SearchContext = React.createContext<SearchContextType>({
@@ -12,6 +16,10 @@ const SearchContext = React.createContext<SearchContextType>({
   setSearchQuery: () => {},
   resultCount: 0,
   setResultCount: () => {},
+  currentSearchResult: 0,
+  setCurrentSearchResult: () => {},
+  setOnNavigateNext: () => {},
+  setOnNavigatePrev: () => {},
 });
 
 export default SearchContext;

@@ -1,11 +1,12 @@
-import React, {useContext, useState} from 'react';
+import React, {useContext, useState, useRef} from 'react';
 import {View} from 'react-native';
 import {Icon} from 'react-native-elements';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {BlurView} from 'expo-blur';
 
 import CardsScreen from '../../src/components/cards/CardsScreen';
-import DecklistsScreen from '../../src/components/decklists/DecklistsScreen';
+import RulesScreen from '../../src/components/rules/RulesScreen';
+import type { RulesScreenRef } from '../../src/components/rules/RulesScreen';
 
 import SearchFooter from '../../src/components/SearchFooter';
 import SearchContext from '../../src/contexts/SearchContext';
@@ -21,6 +22,16 @@ export default function TabLayout() {
   const iconSize = 24;
   const [searchQuery, setSearchQuery] = useState('');
   const [resultCount, setResultCount] = useState(0);
+  const [activeTab, setActiveTab] = useState('Cards');
+  const [currentSearchResult, setCurrentSearchResult] = useState(0);
+  const [onNavigateNext, setOnNavigateNext] = useState<(() => void) | undefined>(undefined);
+  const [onNavigatePrev, setOnNavigatePrev] = useState<(() => void) | undefined>(undefined);
+  
+  // Separate state for PDF search
+  const [pdfSearchQuery, setPdfSearchQuery] = useState('');
+  const [pdfResultCount, setPdfResultCount] = useState(0);
+  const [pdfCurrentResult, setPdfCurrentResult] = useState(0);
+  const rulesScreenRef = useRef<any>(null);
   const themeContext = useContext(ThemeContext);
   const theme: Theme = themeContext || {
     name: 'dark',
@@ -31,10 +42,27 @@ export default function TabLayout() {
   };
 
   return (
-    <SearchContext.Provider value={{ searchQuery, setSearchQuery, resultCount, setResultCount }}>
+    <SearchContext.Provider value={{ 
+      searchQuery, 
+      setSearchQuery, 
+      resultCount, 
+      setResultCount,
+      currentSearchResult,
+      setCurrentSearchResult,
+      setOnNavigateNext,
+      setOnNavigatePrev
+    }}>
       <View style={{ flex: 1 }}>
         <Tab.Navigator
         initialRouteName="Cards"
+        screenListeners={{
+          state: (e) => {
+            const route = e.data?.state?.routes[e.data?.state?.index];
+            if (route) {
+              setActiveTab(route.name);
+            }
+          },
+        }}
         screenOptions={{
           tabBarShowLabel: false,
           tabBarHideOnKeyboard: true,
@@ -43,6 +71,7 @@ export default function TabLayout() {
             ...styles.tabBarStyle,
             bottom: layout.nativeFooterHeight(),
             height: layout.tabBarHeight(),
+            marginTop: activeTab === 'Cards' ? 0 : 8,
             backgroundColor: 'transparent',
             elevation: 0,
             shadowOpacity: 0,
@@ -75,12 +104,12 @@ export default function TabLayout() {
       </Tab.Screen>
 
       <Tab.Screen
-        name="Decklists"
+        name="RulesTab"
         options={{
-          tabBarLabel: 'Decklists',
+          tabBarLabel: 'Rules',
           tabBarIcon: () => (
             <Icon
-              name={'file-tray-full-outline'}
+              name={'book-outline'}
               type="ionicon"
               color={theme?.foregroundColor}
               size={iconSize}
@@ -93,7 +122,13 @@ export default function TabLayout() {
               flex: 1,
               backgroundColor: theme?.backgroundColor,
             }}>
-            <DecklistsScreen />
+            <RulesScreen 
+              ref={rulesScreenRef}
+              onSearchResultsChange={(results) => {
+                setPdfResultCount(results.total);
+                setPdfCurrentResult(results.current);
+              }}
+            />
           </View>
         )}
       </Tab.Screen>
@@ -106,7 +141,7 @@ export default function TabLayout() {
         bottom: 0,
         left: 0,
         right: 0,
-        height: layout.tabBarHeight() + layout.nativeFooterHeight(),
+        height: layout.tabBarHeight() + layout.nativeFooterHeight() + (activeTab === 'Cards' ? 0 : 8),
         pointerEvents: 'none',
       }}>
         <BlurView
@@ -115,7 +150,7 @@ export default function TabLayout() {
             bottom: 0,
             left: 0,
             right: 0,
-            height: layout.tabBarHeight() + layout.nativeFooterHeight(),
+            height: layout.tabBarHeight() + layout.nativeFooterHeight() + (activeTab === 'Cards' ? 0 : 8),
           }}
           intensity={50}
           tint={theme.name === 'dark' ? 'dark' : 'light'}
@@ -144,14 +179,35 @@ export default function TabLayout() {
         />
       </View>
       
-      <SearchFooter 
-        onSearchChange={setSearchQuery}
-        onToggleSearchMode={() => {
-          // TODO: Handle search mode toggle
-        }}
-        resultCount={resultCount}
-        searchTerm={searchQuery}
-      />
+      {activeTab === 'Cards' && (
+        <SearchFooter 
+          onSearchChange={setSearchQuery}
+          onToggleSearchMode={() => {
+            // TODO: Handle search mode toggle
+          }}
+          resultCount={resultCount}
+          searchTerm={searchQuery}
+          activeTab={activeTab}
+          currentResult={currentSearchResult}
+          onNavigateNext={onNavigateNext}
+          onNavigatePrev={onNavigatePrev}
+        />
+      )}
+      
+      {activeTab === 'RulesTab' && (
+        <SearchFooter 
+          onSearchChange={(text) => {
+            setPdfSearchQuery(text);
+            rulesScreenRef.current?.performSearch(text);
+          }}
+          resultCount={pdfResultCount}
+          searchTerm={pdfSearchQuery}
+          activeTab={activeTab}
+          currentResult={pdfCurrentResult}
+          onNavigateNext={() => rulesScreenRef.current?.navigateNext()}
+          onNavigatePrev={() => rulesScreenRef.current?.navigatePrev()}
+        />
+      )}
       </View>
     </SearchContext.Provider>
   );

@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PDF Viewer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #000;
+            color: #fff;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        #toolbar {
+            background: #1a1a1a;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid #333;
+            flex-shrink: 0;
+        }
+        
+        #toolbar button {
+            background: #333;
+            color: #fff;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        #toolbar button:hover {
+            background: #444;
+        }
+        
+        #toolbar button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        #pageInfo {
+            font-size: 14px;
+            margin: 0 10px;
+        }
+        
+        #searchBox {
+            display: none;
+            background: #333;
+            padding: 4px 8px;
+            border-radius: 4px;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        #searchBox input {
+            background: #222;
+            color: #fff;
+            border: 1px solid #444;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 200px;
+        }
+        
+        #searchBox button {
+            padding: 4px 8px;
+            font-size: 12px;
+        }
+        
+        #viewerContainer {
+            flex: 1;
+            overflow: auto;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 0;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .page {
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+        
+        .textLayer {
+            position: absolute;
+            left: 0;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+            opacity: 0.2;
+            line-height: 1;
+        }
+        
+        .textLayer > span {
+            color: transparent;
+            position: absolute;
+            white-space: pre;
+            cursor: text;
+            transform-origin: 0% 0%;
+        }
+        
+        .textLayer .highlight {
+            background-color: rgb(255, 255, 0);
+            opacity: 0.5;
+        }
+        
+        .textLayer .highlight.selected {
+            background-color: rgb(0, 100, 200);
+        }
+        
+        ::selection {
+            background: rgb(0, 100, 200);
+        }
+        
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div id="toolbar">
+        <button id="prevPage">Previous</button>
+        <button id="nextPage">Next</button>
+        <span id="pageInfo">Page 1 of ?</span>
+        <button id="zoomOut">-</button>
+        <button id="zoomIn">+</button>
+        <button id="searchToggle">Search</button>
+        <div id="searchBox">
+            <input type="text" id="searchInput" placeholder="Search...">
+            <button id="searchPrev">◀</button>
+            <button id="searchNext">▶</button>
+            <button id="searchClose">✕</button>
+        </div>
+    </div>
+    <div id="viewerContainer">
+        <div class="loading">Loading PDF...</div>
+    </div>
+
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        
+        let pdfDoc = null;
+        let pageNum = 1;
+        let pageRendering = false;
+        let pageNumPending = null;
+        let scale = 1;
+        let searchState = {
+            query: '',
+            matches: [],
+            currentMatch: -1
+        };
+        
+        const container = document.getElementById('viewerContainer');
+        const prevButton = document.getElementById('prevPage');
+        const nextButton = document.getElementById('nextPage');
+        const pageInfo = document.getElementById('pageInfo');
+        const zoomInButton = document.getElementById('zoomIn');
+        const zoomOutButton = document.getElementById('zoomOut');
+        const searchToggle = document.getElementById('searchToggle');
+        const searchBox = document.getElementById('searchBox');
+        const searchInput = document.getElementById('searchInput');
+        const searchPrev = document.getElementById('searchPrev');
+        const searchNext = document.getElementById('searchNext');
+        const searchClose = document.getElementById('searchClose');
+        
+        // Get PDF URL from query parameter or use default
+        const urlParams = new URLSearchParams(window.location.search);
+        const pdfUrl = urlParams.get('url') || 'https://cdn.starwarsunlimited.com//SWH_Comp_Rules_4_0_1_67fd04599a.pdf';
+        
+        function renderPage(num) {
+            pageRendering = true;
+            
+            pdfDoc.getPage(num).then(function(page) {
+                const viewport = page.getViewport({ scale: scale });
+                
+                // Clear container for single page view
+                container.innerHTML = '';
+                
+                // Create page container
+                const pageDiv = document.createElement('div');
+                pageDiv.className = 'page';
+                
+                // Create canvas
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+                
+                pageDiv.appendChild(canvas);
+                container.appendChild(pageDiv);
+                
+                // Render PDF page
+                const renderContext = {
+                    canvasContext: context,
+                    viewport: viewport
+                };
+                
+                const renderTask = page.render(renderContext);
+                
+                renderTask.promise.then(function() {
+                    pageRendering = false;
+                    
+                    if (pageNumPending !== null) {
+                        renderPage(pageNumPending);
+                        pageNumPending = null;
+                    }
+                    
+                    // Render text layer
+                    return page.getTextContent();
+                }).then(function(textContent) {
+                    const textLayerDiv = document.createElement('div');
+                    textLayerDiv.className = 'textLayer';
+                    textLayerDiv.style.width = viewport.width + 'px';
+                    textLayerDiv.style.height = viewport.height + 'px';
+                    pageDiv.appendChild(textLayerDiv);
+                    
+                    pdfjsLib.renderTextLayer({
+                        textContent: textContent,
+                        container: textLayerDiv,
+                        viewport: viewport,
+                        textDivs: []
+                    });
+                    
+                    // Perform search if active
+                    if (searchState.query) {
+                        performSearch();
+                    }
+                });
+            });
+            
+            // Update page info
+            pageInfo.textContent = `Page ${num} of ${pdfDoc.numPages}`;
+            
+            // Update navigation buttons
+            prevButton.disabled = num <= 1;
+            nextButton.disabled = num >= pdfDoc.numPages;
+        }
+        
+        function queueRenderPage(num) {
+            if (pageRendering) {
+                pageNumPending = num;
+            } else {
+                renderPage(num);
+            }
+        }
+        
+        function onPrevPage() {
+            if (pageNum <= 1) return;
+            pageNum--;
+            queueRenderPage(pageNum);
+        }
+        
+        function onNextPage() {
+            if (pageNum >= pdfDoc.numPages) return;
+            pageNum++;
+            queueRenderPage(pageNum);
+        }
+        
+        function onZoomIn() {
+            scale = Math.min(scale * 1.2, 3);
+            queueRenderPage(pageNum);
+        }
+        
+        function onZoomOut() {
+            scale = Math.max(scale / 1.2, 0.5);
+            queueRenderPage(pageNum);
+        }
+        
+        function performSearch() {
+            const textLayer = document.querySelector('.textLayer');
+            if (!textLayer || !searchState.query) return;
+            
+            // Clear previous highlights
+            textLayer.querySelectorAll('.highlight').forEach(el => {
+                el.classList.remove('highlight', 'selected');
+            });
+            
+            // Search in text layer
+            const textSpans = textLayer.querySelectorAll('span');
+            searchState.matches = [];
+            
+            textSpans.forEach(span => {
+                const text = span.textContent.toLowerCase();
+                const query = searchState.query.toLowerCase();
+                
+                if (text.includes(query)) {
+                    span.classList.add('highlight');
+                    searchState.matches.push(span);
+                }
+            });
+            
+            // Highlight current match
+            if (searchState.matches.length > 0 && searchState.currentMatch >= 0) {
+                searchState.matches[searchState.currentMatch].classList.add('selected');
+                searchState.matches[searchState.currentMatch].scrollIntoView({ block: 'center' });
+            }
+        }
+        
+        function onSearch() {
+            searchState.query = searchInput.value;
+            searchState.currentMatch = -1;
+            
+            if (searchState.query) {
+                performSearch();
+                if (searchState.matches.length > 0) {
+                    searchState.currentMatch = 0;
+                    performSearch();
+                }
+            }
+        }
+        
+        function onSearchPrev() {
+            if (searchState.matches.length === 0) return;
+            searchState.currentMatch = (searchState.currentMatch - 1 + searchState.matches.length) % searchState.matches.length;
+            performSearch();
+        }
+        
+        function onSearchNext() {
+            if (searchState.matches.length === 0) return;
+            searchState.currentMatch = (searchState.currentMatch + 1) % searchState.matches.length;
+            performSearch();
+        }
+        
+        // Event listeners
+        prevButton.addEventListener('click', onPrevPage);
+        nextButton.addEventListener('click', onNextPage);
+        zoomInButton.addEventListener('click', onZoomIn);
+        zoomOutButton.addEventListener('click', onZoomOut);
+        
+        searchToggle.addEventListener('click', function() {
+            searchBox.style.display = searchBox.style.display === 'flex' ? 'none' : 'flex';
+            if (searchBox.style.display === 'flex') {
+                searchInput.focus();
+            }
+        });
+        
+        searchInput.addEventListener('input', onSearch);
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                onSearchNext();
+            }
+        });
+        
+        searchPrev.addEventListener('click', onSearchPrev);
+        searchNext.addEventListener('click', onSearchNext);
+        searchClose.addEventListener('click', function() {
+            searchBox.style.display = 'none';
+            searchState.query = '';
+            searchInput.value = '';
+            performSearch();
+        });
+        
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowLeft') onPrevPage();
+            else if (e.key === 'ArrowRight') onNextPage();
+            else if (e.key === 'f' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                searchBox.style.display = 'flex';
+                searchInput.focus();
+            }
+        });
+        
+        // Load PDF
+        pdfjsLib.getDocument(pdfUrl).promise.then(function(pdf) {
+            pdfDoc = pdf;
+            pageInfo.textContent = `Page 1 of ${pdf.numPages}`;
+            
+            // Initial page rendering
+            renderPage(pageNum);
+        }).catch(function(error) {
+            container.innerHTML = '<div class="loading">Error loading PDF: ' + error.message + '</div>';
+        });
+    </script>
+</body>
+</html>
