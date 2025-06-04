@@ -15,8 +15,10 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.swuholocron.app",
       "infoPlist": {
-        "CFBundleDisplayName": "Holocron"
+        "CFBundleDisplayName": "Holocron",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {

@@ -16,7 +16,8 @@ interface RulesScreenProps {
   onSearchResultsChange?: (results: { current: number; total: number }) => void;
 }
 
-const RulesScreen = forwardRef<RulesScreenRef, RulesScreenProps>(({ onSearchResultsChange }, ref) => {
+const RulesScreen = forwardRef<RulesScreenRef, RulesScreenProps>((props, ref) => {
+  const { onSearchResultsChange } = props;
   const themeContext = useContext(ThemeContext);
   const [searchResults, setSearchResults] = useState({ current: 0, total: 0 });
   const webViewRef = useRef<WebView>(null);
@@ -295,7 +296,7 @@ const RulesScreen = forwardRef<RulesScreenRef, RulesScreenProps>(({ onSearchResu
             <button id="zoomOut">-</button>
             <button id="zoomReset">Fit</button>
             <button id="zoomIn">+</button>
-            <button id="searchToggle">Search</button>
+            <button id="searchToggle" style="opacity: 0.5; cursor: not-allowed;" title="Loading pages for search...">Search</button>
             <div id="searchBox">
                 <input type="text" id="searchInput" placeholder="Search...">
                 <button id="searchPrev">◀</button>
@@ -304,7 +305,7 @@ const RulesScreen = forwardRef<RulesScreenRef, RulesScreenProps>(({ onSearchResu
             </div>
         </div>
         <div id="viewerContainer">
-            <div class="loading">Loading PDF...</div>
+            <div class="loading">Loading Comprehensive Rules...</div>
         </div>
 
         <script>
@@ -317,9 +318,9 @@ const RulesScreen = forwardRef<RulesScreenRef, RulesScreenProps>(({ onSearchResu
             let searchState = {
                 query: '',
                 matches: [],
-                currentMatch: -1,
-                isSearching: false
+                currentMatch: -1
             };
+            let allPagesRendered = false;
             
             // Function to update horizontal scroll based on zoom level
             function updateHorizontalScroll() {
@@ -460,6 +461,11 @@ const RulesScreen = forwardRef<RulesScreenRef, RulesScreenProps>(({ onSearchResu
                     // Re-render at final scale
                     renderedPages.clear();
                     renderAllPages().then(() => {
+                        // Re-render all pages if they were already rendered for search
+                        if (allPagesRendered) {
+                            return renderAllPagesForSearch();
+                        }
+                    }).then(() => {
                         // Use requestAnimationFrame to ensure layout is complete
                         requestAnimationFrame(() => {
                             // Calculate where that document point is now at the new scale
@@ -603,11 +609,29 @@ const RulesScreen = forwardRef<RulesScreenRef, RulesScreenProps>(({ onSearchResu
                 }
             }
             
-            async function renderAllPages() {
+            async function renderAllPagesForSearch() {
+                // Render all pages to enable complete search
+                for (let i = 0; i < allPages.length; i++) {
+                    const pageInfo = allPages[i];
+                    if (!pageInfo.rendered && !renderingPages.has(pageInfo.pageNum)) {
+                        await renderPage(pageInfo.pageNum);
+                    }
+                }
+                allPagesRendered = true;
+                // Enable search button
+                const searchToggle = document.getElementById('searchToggle');
+                if (searchToggle) {
+                    searchToggle.style.opacity = '1';
+                    searchToggle.style.cursor = 'pointer';
+                    searchToggle.title = 'Search in PDF';
+                }
+            }
+
+            function renderAllPages() {
                 return new Promise(async (resolve) => {
                     // First time setup
                     if (allPages.length === 0) {
-                    container.innerHTML = '<div class="loading">Preparing PDF...</div>';
+                    container.innerHTML = '<div class="loading">Preparing Comprehensive Rules...</div>';
 
                     // Calculate scale to fit width
                     const containerWidth = container.clientWidth - 40; // 20px padding on each side
@@ -877,6 +901,10 @@ const RulesScreen = forwardRef<RulesScreenRef, RulesScreenProps>(({ onSearchResu
                 renderedPages.clear();
                 renderAllPages().then(() => {
                     updateHorizontalScroll();
+                    // Re-render all pages if they were already rendered for search
+                    if (allPagesRendered) {
+                        return renderAllPagesForSearch();
+                    }
                 });
             }
 
@@ -886,6 +914,10 @@ const RulesScreen = forwardRef<RulesScreenRef, RulesScreenProps>(({ onSearchResu
                 renderedPages.clear();
                 renderAllPages().then(() => {
                     updateHorizontalScroll();
+                    // Re-render all pages if they were already rendered for search
+                    if (allPagesRendered) {
+                        return renderAllPagesForSearch();
+                    }
                 });
             };
             
@@ -893,8 +925,7 @@ const RulesScreen = forwardRef<RulesScreenRef, RulesScreenProps>(({ onSearchResu
 
             
             window.onZoomReset = function() {
-                // Reset to the responsive scale calculated for this device
-                const referenceWidth = 430;
+                const referenceWidth = 768;
                 const referenceScale = 1.1;
                 const screenWidth = window.innerWidth;
                 scale = referenceScale * (screenWidth / referenceWidth);
@@ -902,6 +933,10 @@ const RulesScreen = forwardRef<RulesScreenRef, RulesScreenProps>(({ onSearchResu
                 renderedPages.clear();
                 renderAllPages().then(() => {
                     updateHorizontalScroll();
+                    // Re-render all pages if they were already rendered for search
+                    if (allPagesRendered) {
+                        return renderAllPagesForSearch();
+                    }
                 });
             }
 
@@ -926,6 +961,9 @@ const RulesScreen = forwardRef<RulesScreenRef, RulesScreenProps>(({ onSearchResu
             zoomResetButton.addEventListener('click', onZoomReset);
 
             searchToggle.addEventListener('click', function() {
+                if (!allPagesRendered) {
+                    return; // Don't allow search until all pages are rendered
+                }
                 searchBox.style.display = searchBox.style.display === 'flex' ? 'none' : 'flex';
                 if (searchBox.style.display === 'flex') {
                     searchInput.focus();
@@ -1007,9 +1045,27 @@ const RulesScreen = forwardRef<RulesScreenRef, RulesScreenProps>(({ onSearchResu
 
                 renderAllPages().then(() => {
                     updateHorizontalScroll();
+                    // Render all pages for search functionality
+                    const totalPages = pdfDoc.numPages;
+                    let renderedCount = 0;
+                    
+                    // Update progress during rendering
+                    const updateProgress = () => {
+                        renderedCount = renderedPages.size;
+                        pageInfo.textContent = 'Preparing search... (' + renderedCount + '/' + totalPages + ')';
+                    };
+                    
+                    // Set up progress monitoring
+                    const progressInterval = setInterval(updateProgress, 100);
+                    
+                    return renderAllPagesForSearch().then(() => {
+                        clearInterval(progressInterval);
+                    });
+                }).then(() => {
+                    pageInfo.textContent = 'Page 1 of ' + pdfDoc.numPages + ' (Search Ready)';
                 });
             }).catch(function(error) {
-                container.innerHTML = '<div class="loading">Error loading PDF: ' + error.message + '</div>';
+                container.innerHTML = '<div class="loading">Error loading Comprehensive Rules: ' + error.message + '</div>';
             });
         </script>
     </body>
