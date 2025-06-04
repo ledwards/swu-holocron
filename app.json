@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "SWU Holocron",
+    "name": "Holocron",
     "slug": "swu-holocron",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "CFBundleDisplayName": "SWU Holocron"
+        "CFBundleDisplayName": "Holocron"
       }
     },
     "android": {

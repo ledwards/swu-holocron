@@ -20,8 +20,8 @@ import ThemeContext from '../src/contexts/ThemeContext';
 import AllCardsContext from '../src/contexts/AllCardsContext';
 import { Theme } from '../src/types/interfaces';
 
-// Keep the splash screen visible while we fetch resources
-SplashScreen.preventAutoHideAsync();
+// Don't keep splash screen visible - let it hide as soon as possible
+// SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const initialTheme = useColorScheme();
@@ -71,11 +71,9 @@ export default function RootLayout() {
       setAllCards(cards);
       setCardsLoaded(true);
       
-      // Hide splash screen when cards are loaded
-      await SplashScreen.hideAsync();
+      // Splash screen already hidden
     } catch (error) {
       // Silent error handling
-      await SplashScreen.hideAsync();
     }
   };
 
@@ -89,10 +87,10 @@ export default function RootLayout() {
       }}>
         <Image
           source={require('../assets/images/icon.png')}
+          contentFit="contain"
           style={{
             width: '100%',
-            height: '100%',
-            resizeMode: 'contain'
+            height: '100%'
           }}
         />
         <StatusBar barStyle="light-content" />

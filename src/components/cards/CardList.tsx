@@ -110,7 +110,6 @@ const CardList: React.FC<CardListProps> = ({onCardPress, searchQuery = ''}) => {
     
     // Update result count in context
     if (searchContext) {
-      console.log('CardList setting result count:', cardsWithScores.length);
       searchContext.setResultCount(cardsWithScores.length);
     }
   }, [searchQuery, allCards, searchContext]);

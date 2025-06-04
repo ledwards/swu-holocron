@@ -437,20 +437,7 @@ const RulesScreen = forwardRef<RulesScreenRef, RulesScreenProps>(({ onSearchResu
                             const translateY = panY / visualScale;
                             pagesWrapper.style.transform = 'scale(' + visualScale + ') translate(' + translateX + 'px, ' + translateY + 'px)';
                             pagesWrapper.style.transformOrigin = scrolledX + 'px ' + scrolledY + 'px';
-                            
-                            // Debug: log the actual transform values
-                            if (window.ReactNativeWebView) {
-                                window.ReactNativeWebView.postMessage(JSON.stringify({
-                                    type: 'debug', 
-                                    message: 'Transform update',
-                                    data: {
-                                        visualScale: visualScale,
-                                        pan: { x: panX, y: panY },
-                                        translate: { x: translateX, y: translateY },
-                                        origin: { x: scrolledX, y: scrolledY }
-                                    }
-                                }));
-                            }
+
                         }
                     }
                 }
@@ -491,22 +478,7 @@ const RulesScreen = forwardRef<RulesScreenRef, RulesScreenProps>(({ onSearchResu
                             // Update horizontal scroll state after zoom
                             updateHorizontalScroll();
                             
-                            // Debug the position error
-                            if (window.ReactNativeWebView) {
-                                window.ReactNativeWebView.postMessage(JSON.stringify({
-                                    type: 'debug',
-                                    message: 'Position calculation',
-                                    data: {
-                                        pinchCenter: pinchCenter,
-                                        startScale: startScale,
-                                        finalScale: scale,
-                                        scaleRatio: scale / startScale,
-                                        docPoint: { x: documentX, y: documentY },
-                                        startPosition: { scrollLeft: startScrollLeft, scrollTop: startScrollTop },
-                                        transform: currentTransform
-                                    }
-                                }));
-                            }
+
                         }, 50);
                     });
                     
@@ -518,13 +490,7 @@ const RulesScreen = forwardRef<RulesScreenRef, RulesScreenProps>(({ onSearchResu
             // Global search functions for React Native integration
             let searchTimeout = null;
             window.performSearch = function(query) {
-                if (window.ReactNativeWebView) {
-                    window.ReactNativeWebView.postMessage(JSON.stringify({
-                        type: 'debug',
-                        message: 'performSearch called',
-                        data: { query: query, time: new Date().toISOString() }
-                    }));
-                }
+
                 
                 // Clear any pending search
                 if (searchTimeout) {
@@ -533,13 +499,7 @@ const RulesScreen = forwardRef<RulesScreenRef, RulesScreenProps>(({ onSearchResu
                 
                 // Debounce to prevent multiple rapid searches
                 searchTimeout = setTimeout(() => {
-                    if (window.ReactNativeWebView) {
-                        window.ReactNativeWebView.postMessage(JSON.stringify({
-                            type: 'debug',
-                            message: 'performSearch executing',
-                            data: { query: query, time: new Date().toISOString() }
-                        }));
-                    }
+
                     searchState.query = query;
                     searchState.currentMatch = -1;
                     searchState.matches = [];
@@ -572,13 +532,7 @@ const RulesScreen = forwardRef<RulesScreenRef, RulesScreenProps>(({ onSearchResu
                     }
                 }
                 
-                    if (window.ReactNativeWebView) {
-                        window.ReactNativeWebView.postMessage(JSON.stringify({
-                            type: 'debug',
-                            message: 'performSearch complete',
-                            data: { matchCount: searchState.matches.length }
-                        }));
-                    }
+
                     updateSearchResults();
                 }, 100); // 100ms debounce
             };
@@ -597,17 +551,7 @@ const RulesScreen = forwardRef<RulesScreenRef, RulesScreenProps>(({ onSearchResu
             
             window.searchNext = function() {
                 if (searchState.matches.length > 0) {
-                    if (window.ReactNativeWebView) {
-                        window.ReactNativeWebView.postMessage(JSON.stringify({
-                            type: 'debug',
-                            message: 'searchNext called',
-                            data: { 
-                                currentMatch: searchState.currentMatch,
-                                matchCount: searchState.matches.length,
-                                query: searchState.query
-                            }
-                        }));
-                    }
+
                     searchState.currentMatch = (searchState.currentMatch + 1) % searchState.matches.length;
                     highlightCurrentMatch();
                     updateSearchResults();
@@ -616,17 +560,7 @@ const RulesScreen = forwardRef<RulesScreenRef, RulesScreenProps>(({ onSearchResu
             
             window.searchPrev = function() {
                 if (searchState.matches.length > 0) {
-                    if (window.ReactNativeWebView) {
-                        window.ReactNativeWebView.postMessage(JSON.stringify({
-                            type: 'debug',
-                            message: 'searchPrev called',
-                            data: { 
-                                currentMatch: searchState.currentMatch,
-                                matchCount: searchState.matches.length,
-                                query: searchState.query
-                            }
-                        }));
-                    }
+
                     searchState.currentMatch = (searchState.currentMatch - 1 + searchState.matches.length) % searchState.matches.length;
                     highlightCurrentMatch();
                     updateSearchResults();
@@ -814,17 +748,6 @@ const RulesScreen = forwardRef<RulesScreenRef, RulesScreenProps>(({ onSearchResu
                 
                 // Check if new pages were rendered and search is active
                 if (renderedPages.size > previousRenderedCount && searchState.query) {
-                    if (window.ReactNativeWebView) {
-                        window.ReactNativeWebView.postMessage(JSON.stringify({
-                            type: 'debug',
-                            message: 'New pages rendered during navigation',
-                            data: { 
-                                previousCount: previousRenderedCount,
-                                newCount: renderedPages.size,
-                                query: searchState.query
-                            }
-                        }));
-                    }
                 }
             }
 
@@ -944,7 +867,6 @@ const RulesScreen = forwardRef<RulesScreenRef, RulesScreenProps>(({ onSearchResu
 
                     // Search will be handled by window.performSearch when needed
                 } catch (error) {
-                    console.error('Error rendering page ' + pageNum + ':', error);
                     renderingPages.delete(pageNum);
                 }
             }
@@ -1067,7 +989,7 @@ const RulesScreen = forwardRef<RulesScreenRef, RulesScreenProps>(({ onSearchResu
                         }
                     }, 100);
                 } catch (error) {
-                    console.log('Error navigating to destination:', error);
+                    // Error navigating to destination
                 }
             }
 
@@ -1120,7 +1042,7 @@ const RulesScreen = forwardRef<RulesScreenRef, RulesScreenProps>(({ onSearchResu
           true;
         `}
         onError={(syntheticEvent) => {
-          console.log('WebView error:', syntheticEvent.nativeEvent);
+          // WebView error
         }}
         onMessage={(event) => {
           try {
@@ -1131,13 +1053,12 @@ const RulesScreen = forwardRef<RulesScreenRef, RulesScreenProps>(({ onSearchResu
                 total: data.total
               };
               setSearchResults(results);
-              console.log('RulesScreen setting result count:', data.total, 'current:', data.current);
               onSearchResultsChange?.(results);
             } else if (data.type === 'debug') {
-              console.log('WebView Debug:', data.message, data.data);
+              // Debug message received
             }
           } catch (e) {
-            console.log('Error parsing message:', e);
+            // Error parsing message
           }
         }}
       />
